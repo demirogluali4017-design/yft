@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YDS Fransızca - Çalışma Portalı</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; height: 100vh; overflow: hidden; }
+
+    .screen { display: none; height: 100vh; width: 100%; overflow-y: auto; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* GİRİŞ EKRANI STİLİ */
+    #login-screen { justify-content: center; align-items: center; background: linear-gradient(135deg, #1a252f, #2c3e50); color: white; text-align: center; padding: 20px; }
+    .login-box { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 30px; border-radius: 12px; width: 100%; max-width: 400px; }
+    .login-box input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: none; font-size: 16px; }
+
+    /* ANA MENÜ STİLLERİ */
+    #main-menu { justify-content: center; align-items: center; background: linear-gradient(135deg, #1a252f, #2c3e50); color: white; text-align: center; padding: 20px; }
+    #main-menu h1 { font-size: 30px; margin-bottom: 5px; }
+    .menu-cards { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 25px; margin-bottom: 30px; }
+    .menu-card { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 20px; border-radius: 12px; width: 200px; cursor: pointer; transition: 0.3s; }
+    .menu-card:hover { transform: translateY(-5px); background: rgba(255, 255, 255, 0.2); }
+
+    /* GENEL FORM VE KONTEYNERLAR */
+    .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 800px; margin: auto; display: flex; flex-direction: column; min-height: 80vh; justify-content: space-between; }
+    .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; text-align: center; font-size: 14px; }
+    .btn-primary { background: #28a745; color: white; }
+    .btn-secondary { background: #6c757d; color: white; }
+    .btn-danger { background: #dc3545; color: white; }
+    .btn-warning { background: #ffc107; color: #212529; }
+    .btn-info { background: #17a2b8; color: white; }
+
+    /* TEST EKRANI DÜZENİ */
+    #quiz-screen { flex-direction: column; height: 100vh; }
+    #top-bar { background: #1a252f; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    #workspace { display: flex; flex: 1; overflow: hidden; }
+    #article-panel { flex: 1; padding: 25px; border-right: 2px solid #e0e0e0; overflow-y: auto; background-color: #fff; }
+    #question-panel { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; }
+    
+    .timer-controls { display: flex; align-items: center; gap: 8px; }
+    .timer-badge { background: #e9ecef; color: #333; padding: 6px 12px; border-radius: 20px; font-family: monospace; font-size: 15px; font-weight: bold; }
+
+    .option-btn { text-align: left; padding: 12px 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 15px; width: 100%; margin-bottom: 8px; }
+    .option-btn.selected { background-color: #e2e6ea; border-color: #343a40; font-weight: bold; }
+    
+    .explanation-box { margin-top: 15px; padding: 15px; background: #e9ecef; border-left: 4px solid #17a2b8; border-radius: 6px; font-size: 14px; display: none; }
+    
+    /* ANALİZ VE RAPOR EKRANLARI */
+    .history-card { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 12px; background: #f8f9fa; }
+    .stat-box { display: flex; justify-content: space-between; background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+
+    /* GELİŞTİRİCİ İMZASI STİLİ */
+    .app-footer { text-align: center; padding: 12px; font-size: 13px; color: #7f8c8d; font-style: italic; letter-spacing: 0.5px; width: 100%; margin-top: 15px; }
+    .app-footer span { font-weight: 600; color: #34495e; }
+    #main-menu .app-footer, #login-screen .app-footer { color: #bdc3c7; }
+    #main-menu .app-footer span, #login-screen .app-footer span { color: #ecf0f1; }
+  </style>
+</head>
+<body>
+
+  <!-- 0. ZORUNLU GİRİŞ EKRANI -->
+  <div id="login-screen" class="screen active">
+    <div class="login-box">
+      <h2>🇫🇷 YDS Fransızca</h2>
+      <p style="margin-top:5px; font-size:14px; color:#bdc3c7;">Devam etmek için adınızı girin</p>
+      <input type="text" id="username-input" placeholder="Adınız Soyadınız...">
+      <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">Giriş Yap & Başla</button>
+    </div>
+    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+  </div>
+
+  <!-- 1. ANA MENÜ -->
+  <div id="main-menu" class="screen">
+    <div>
+      <h1>🇫🇷 YDS Fransızca Portalı</h1>
+      <p>Hoş geldin, <strong id="welcome-username" style="color:#f1c40f;"></strong></p>
+      <div class="menu-cards">
+        <div class="menu-card" onclick="showScreen('quiz-screen')"><h3>📝 Soru Çöz</h3></div>
+        <div class="menu-card" onclick="showScreen('upload-screen')"><h3>➕ Soru Yükle</h3></div>
+        <div class="menu-card" onclick="showScreen('history-screen')"><h3>📜 Geçmiş Sınavlar</h3></div>
+        <div class="menu-card" onclick="showScreen('analytics-screen')"><h3>📊 İlerleme Analizi</h3></div>
+      </div>
+      <button class="btn btn-secondary" onclick="handleLogout()" style="background:rgba(255,255,255,0.2); margin-top:10px;">👤 Kullanıcı Değiştir</button>
+    </div>
+    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+  </div>
+
+  <!-- 2. SORU YÜKLEME PANELİ -->
+  <div id="upload-screen" class="screen" style="padding: 20px;">
+    <div class="container">
+      <div>
+        <h2>Sisteme Yeni Soru Seti Yükle</h2>
+        <div style="margin: 15px 0;">
+          <label>Konu Başlığı:</label>
+          <input type="text" id="upload-topic" style="width:100%; padding:8px; margin-top:5px;" placeholder="Örn: Fransız İhtilali">
+        </div>
+        <div style="margin: 15px 0;">
+          <label>Tarih:</label>
+          <input type="date" id="upload-date" style="width:100%; padding:8px; margin-top:5px;">
+        </div>
+        <div style="margin: 15px 0;">
+          <label>JSON Verisi:</label>
+          <textarea id="upload-json" style="width:100%; height:150px; padding:8px; margin-top:5px; font-family:monospace;" placeholder="Yapay zeka çıktısını buraya yapıştırın..."></textarea>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary" onclick="showScreen('main-menu')">🏠 Ana Menü</button>
+          <button class="btn btn-primary" onclick="handleSaveSet()">💾 Kaydet</button>
+        </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 3. TEST ÇÖZME EKRANI -->
+  <div id="quiz-screen" class="screen">
+    <div id="top-bar">
+      <button class="btn btn-secondary" onclick="showScreen('main-menu')">🏠 Menü</button>
+      <div>
+        <select id="set-select" onchange="changeSet(this.value)" style="padding: 6px; border-radius: 4px;"></select>
+      </div>
+      <div class="timer-controls">
+        <span id="timer" class="timer-badge">⏱️ 00:00</span>
+        <button class="btn btn-warning" id="timer-toggle-btn" onclick="toggleTimer()">⏸️ Durdur</button>
+        <button class="btn btn-danger" onclick="finishExam()">🏁 Sınavı Bitir</button>
+      </div>
+    </div>
+
+    <div id="workspace">
+      <div id="article-panel">
+        <h2 id="article-number">Metin 1 / 1</h2>
+        <h1 id="article-title">Yükleniyor...</h1>
+        <div id="article-text" style="line-height: 1.8; font-size: 16px; text-align: justify; margin-top:15px;"></div>
+      </div>
+
+      <div id="question-panel">
+        <div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold;">
+            <span id="question-number">Soru 1 / 4</span>
+          </div>
+
+          <div style="background:#fff; padding:20px; border-radius:8px; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+            <div id="question-title" style="font-weight:600; margin-bottom:15px;"></div>
+            <div id="options-group"></div>
+            
+            <button class="btn btn-info" id="show-answer-btn" onclick="toggleAnswerVisibility()" style="margin-top:15px; width:100%;">💡 Cevabı Göster</button>
+            <div id="explanation-box" class="explanation-box"></div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <button id="prev-btn" class="btn btn-secondary" onclick="prevQuestion()">⬅️ Önceki Soru</button>
+            <button id="next-btn" class="btn btn-primary" onclick="nextQuestion()">Sonraki Soru ➔</button>
+          </div>
+          <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SINAV SONU DETAYLI RAPOR EKRANI -->
+  <div id="report-screen" class="screen" style="padding: 20px;">
+    <div class="container">
+      <div>
+        <h2>🎉 Sınav Tamamlandı!</h2>
+        <div class="stat-box" style="margin-top: 15px;">
+          <div><h3 id="rep-correct" style="color:green;">0</h3><small>Doğru</small></div>
+          <div><h3 id="rep-wrong" style="color:red;">0</h3><small>Yanlış</small></div>
+          <div><h3 id="rep-empty" style="color:orange;">0</h3><small>Boş</small></div>
+          <div><h3 id="rep-time">00:00</h3><small>Süre</small></div>
+        </div>
+        <h3>❌ Yanlış Cevaplar ve Çözüm Analizleri</h3>
+        <div id="wrong-answers-list" style="margin-top:15px; max-height:250px; overflow-y:auto;"></div>
+        <button class="btn btn-primary" onclick="showScreen('main-menu')" style="margin-top:20px; width:100%;">🏠 Ana Menüye Dön</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 5. GEÇMİŞ SINAV OTURUMLARI -->
+  <div id="history-screen" class="screen" style="padding: 20px;">
+    <div class="container">
+      <div>
+        <h2>📜 Geçmiş Sınav Oturumları</h2>
+        <div id="history-list" style="margin-top:20px; max-height:350px; overflow-y:auto;"></div>
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 6. HAFTALIK VE AYLIK İLERLEME ANALİZİ -->
+  <div id="analytics-screen" class="screen" style="padding: 20px;">
+    <div class="container">
+      <div>
+        <h2>📊 İlerleme Analizi</h2>
+        <div style="display:flex; gap:10px; margin: 15px 0;">
+          <button class="btn btn-primary" onclick="renderAnalytics('weekly')">Haftalık İlerleme</button>
+          <button class="btn btn-primary" onclick="renderAnalytics('monthly')">Aylık İlerleme</button>
+        </div>
+        <div id="analytics-content" class="history-card"></div>
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <script src="questionsData.js"></script>
+  <script src="analytics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

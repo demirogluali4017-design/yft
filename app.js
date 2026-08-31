@@ -11,7 +11,6 @@ let isTimerRunning = false;
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("upload-date").valueAsDate = new Date();
   
-  // Kullanıcı oturumu açık mı kontrol et
   const savedUser = localStorage.getItem("yds_current_user");
   if (savedUser) {
     document.getElementById("welcome-username").innerText = savedUser;
@@ -23,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
   initData();
 });
 
-// Giriş Yapma İşlemi
 function handleLogin() {
   const username = document.getElementById("username-input").value.trim();
   if (!username) {
@@ -42,22 +40,53 @@ function handleLogout() {
 }
 
 function showScreen(screenId) {
-  // Kronometreyi her ekran değişiminde güvenli durdur
   pauseTimer();
-
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
 
-  if (screenId === 'quiz-screen') {
-    populateDropdown();
-    if (allSets.length > 0) {
-      loadState();
-      startTimer();
-    }
+  if (screenId === 'set-select-screen') {
+    renderSetSelectionList();
   }
-
   if (screenId === 'history-screen') renderHistory();
   if (screenId === 'analytics-screen') renderAnalytics('weekly');
+}
+
+// "Soru Çöz"e basıldığında doğrudan testi başlatmak yerine önce konu seçim ekranını açar
+function openSetSelection() {
+  showScreen('set-select-screen');
+}
+
+// Konu/Set seçim listesini kartlar halinde ekrana basar
+function renderSetSelectionList() {
+  const container = document.getElementById("set-list-container");
+  if (allSets.length === 0) {
+    container.innerHTML = "<p>Sistemde henüz kayıtlı soru seti yok. Lütfen 'Soru Yükle' bölümünden set ekleyin.</p>";
+    return;
+  }
+
+  container.innerHTML = allSets.map((set, index) => `
+    <div class="set-item-card" onclick="startQuizSet(${index})">
+      <div>
+        <strong>📌 ${set.topic}</strong><br>
+        <small style="color:#666;">Tarih: ${set.date}</small>
+      </div>
+      <div>
+        ${set.completed ? '<span style="color:green; font-weight:bold; font-size:13px;">✔ Çözüldü</span>' : '<span style="color:#007bff; font-weight:bold; font-size:13px;">Başla ➔</span>'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function startQuizSet(index) {
+  currentSetIndex = index;
+  currentArticleIndex = 0;
+  currentQuestionIndex = 0;
+  userAnswers = {};
+  secondsPassed = 0;
+  
+  showScreen('quiz-screen');
+  loadState();
+  startTimer();
 }
 
 function initData() {
@@ -76,20 +105,6 @@ function initData() {
   }
 }
 
-function populateDropdown() {
-  const dropdown = document.getElementById("set-select");
-  dropdown.innerHTML = "";
-
-  allSets.forEach((set, index) => {
-    const opt = document.createElement("option");
-    opt.value = index;
-    const isDone = set.completed ? "✔ [Çözüldü] " : "";
-    opt.innerText = `${isDone}[${set.date}] - ${set.topic}`;
-    if (index === currentSetIndex) opt.selected = true;
-    dropdown.appendChild(opt);
-  });
-}
-
 function loadState() {
   const activeSet = allSets[currentSetIndex];
   if (!activeSet || !activeSet.articles) return;
@@ -98,12 +113,12 @@ function loadState() {
   const currentQuestion = currentArticle.questions[currentQuestionIndex];
   const currentQId = currentQuestion.id || `q_${currentQuestionIndex}`;
 
-  document.getElementById("article-number").innerText = `Metin ${currentArticleIndex + 1} / ${activeSet.articles.length}`;
+  document.getElementById("article-number").innerText = `Metin ${currentArticleIndex + 1} / ${activeSet.articles.length} | ${activeSet.topic}`;
   document.getElementById("article-title").innerText = currentArticle.title;
   document.getElementById("article-text").innerText = currentArticle.text;
 
   document.getElementById("question-number").innerText = `Soru ${currentQuestionIndex + 1} / ${currentArticle.questions.length}`;
-  document.getElementById("question-title").innerText = `Soru ${currentQuestionIndex + 1}: ${currentQuestion.question}`;
+  document.getElementById("question-title").innerText = currentQuestion.question;
 
   const optionsGroup = document.getElementById("options-group");
   optionsGroup.innerHTML = "";
@@ -142,11 +157,10 @@ function toggleAnswerVisibility() {
   }
 }
 
-// Güvenli ve Donma Yapmayan Kronometre Yönetimi
 function startTimer() {
   if (!isTimerRunning) {
     isTimerRunning = true;
-    clearInterval(timerInterval); // Çift interval oluşmasını önler
+    clearInterval(timerInterval);
     timerInterval = setInterval(() => {
       secondsPassed++;
       const m = Math.floor(secondsPassed / 60);
@@ -168,16 +182,15 @@ function toggleTimer() {
   const btn = document.getElementById("timer-toggle-btn");
   if (isTimerRunning) {
     pauseTimer();
-    btn.innerText = "▶️ Devam Et";
-    btn.className = "btn btn-primary";
+    btn.innerText = "▶️";
+    btn.className = "btn btn-success";
   } else {
     startTimer();
-    btn.innerText = "⏸️ Durdur";
+    btn.innerText = "⏸️";
     btn.className = "btn btn-warning";
   }
 }
 
-// Sınavı Bitir ve Rapor Ekranına Geçiş
 function finishExam() {
   pauseTimer();
   const activeSet = allSets[currentSetIndex];
@@ -197,9 +210,9 @@ function finishExam() {
       } else {
         wrong++;
         wrongListHTML.push(`
-          <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+          <div style="border-bottom: 1px solid #ddd; padding: 8px 0;">
             <strong>Soru:</strong> ${q.question}<br>
-            <span style="color:red;">Senin Cevabın: ${ans}</span> | <span style="color:green;">Doğru Cevap: ${q.answer}</span><br>
+            <span style="color:red;">Senin: ${ans}</span> | <span style="color:green;">Doğru: ${q.answer}</span><br>
             <small>💡 ${q.explanation}</small>
           </div>
         `);
@@ -229,11 +242,9 @@ function finishExam() {
   document.getElementById("rep-time").innerText = timeFormatted;
   document.getElementById("wrong-answers-list").innerHTML = wrongListHTML.length > 0 ? wrongListHTML.join('') : "<p>Harika! Hiç yanlışınız yok.</p>";
 
-  // Sıfırlamalar ve Kesin Rapor Ekranı Geçişi
   secondsPassed = 0;
   userAnswers = {};
   
-  // Ekran geçişini doğrudan tetikle
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('report-screen').classList.add('active');
 }
@@ -265,13 +276,6 @@ function prevQuestion() {
   loadState();
 }
 
-function changeSet(index) {
-  currentSetIndex = parseInt(index);
-  currentArticleIndex = 0;
-  currentQuestionIndex = 0;
-  loadState();
-}
-
 function handleSaveSet() {
   const topic = document.getElementById("upload-topic").value.trim();
   const date = document.getElementById("upload-date").value;
@@ -295,10 +299,10 @@ function handleSaveSet() {
     allSets.unshift(newSet);
     localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
 
-    alert("✅ Set başarıyla entegre edildi!");
+    alert("✅ Set başarıyla kaydedildi!");
     document.getElementById("upload-topic").value = "";
     document.getElementById("upload-json").value = "";
-    showScreen('quiz-screen');
+    showScreen('set-select-screen');
   } catch (err) {
     alert("❌ HATA: Geçersiz JSON verisi.");
   }

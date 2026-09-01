@@ -1,7 +1,7 @@
 // --- SUPABASE & UYGULAMA MANTIĞI ---
 
 // Supabase Bağlantı Bilgileri (Kendi Supabase panelinden aldığın bilgileri buraya yazmalısın)
-const SUPABASE_URL = "https://fcqppdjmvvkqrnwmrlhr.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://fcqppdjmvvkqrnwmrlhr.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_vXsVr3iPRsm8-u-L0HpPwA_GRwXVFpX";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

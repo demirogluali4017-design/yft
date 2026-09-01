@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>L'Académie - LMS Eğitim Asistanı</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function() {
+      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
+    })();
+  </script>
+  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --primary: #00b4d8; /* Edubin Turkuaz / Mavi Macerası */
+      --primary-hover: #0096b4;
+      --accent: #48cae4;
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-md: 0 10px 25px -5px rgba(0, 180, 216, 0.1), 0 8px 10px -6px rgba(0, 180, 216, 0.1);
+      --transition: all 0.25s ease-in-out;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    body {
+      background: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 35px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    .screen { display: none; opacity: 0; transition: opacity 0.25s ease; }
+    .screen.active { display: block; opacity: 1; }
+
+    h1, h2, h3, h4 { font-family: 'Outfit', sans-serif; color: var(--text-main); font-weight: 700; letter-spacing: -0.01em; }
+    h1 { font-size: 30px; margin-bottom: 10px; }
+    h2 { font-size: 24px; margin-bottom: 15px; }
+    p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      border: none;
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      margin-bottom: 12px;
+      transition: var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      box-shadow: none;
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+      border-color: #cbd5e1;
+    }
+
+    .btn-danger {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      color: var(--danger);
+      box-shadow: none;
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      font-size: 14px;
+      margin-bottom: 14px;
+      transition: var(--transition);
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+    }
+
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      padding: 15px 18px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .option-btn:hover { background: #f0fdf4; border-color: var(--accent); }
+    .option-btn.selected { border-color: var(--primary); background: #e0f2fe; color: #0369a1; font-weight: 600; }
+
+    .set-item-card {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      padding: 16px 20px;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+    }
+    .set-item-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* Özel Kaydırma Çubuğu */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- 1. GİRİŞ EKRANI -->
+    <div id="login-screen" class="screen active">
+      <div style="text-align:center; padding: 20px 0;">
+        <div style="width: 70px; height: 70px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; font-size: 32px;">🇫🇷</div>
+        <h1 style="color:var(--text-main);">YDS Fransızca Asistanı</h1>
+        <p>Akademik başarı ve kalıcı hafıza için modern LMS platformu.</p>
+      </div>
+      <div style="margin-top:20px;">
+        <input type="text" id="username-input" placeholder="Adınızı veya kullanıcı adınızı girin...">
+        <button class="btn btn-primary" onclick="handleLogin()">Platforma Giriş Yap ➔</button>
+      </div>
+    </div>
+
+    <!-- 2. ANA MENÜ EKRANI -->
+    <div id="main-menu" class="screen">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom:1px solid var(--border-color); padding-bottom:15px;">
+        <div>
+          <p style="margin:0; font-size:12px; color:var(--text-muted);">Hoş geldin,</p>
+          <h2 id="welcome-username" style="margin:0; color:var(--primary);"></h2>
+        </div>
+        <button class="btn btn-danger" style="width:auto; padding:8px 14px; font-size:12px; margin:0;" onclick="handleLogout()">Çıkış</button>
+      </div>
+      
+      <button class="btn btn-primary" onclick="openSetSelection()">📝 Soru Setleri & Denemeler</button>
+      <button class="btn btn-secondary" onclick="showScreen('vocab-menu-screen')">📚 Kelime Defteri & Leitner Havuzu</button>
+      <button class="btn btn-secondary" onclick="openReminderScreen()">⏰ Günlük E-posta Hatırlatıcı</button>
+      <button class="btn btn-secondary" onclick="checkAdminAccess()">⚙️ Yönetici Paneli</button>
+      <button class="btn btn-danger" style="margin-top:20px;" onclick="confirmResetUserData()">⚠️ Tüm Verileri Sıfırla</button>
+    </div>
+
+    <!-- 3. SORU SETİ SEÇİM EKRANI -->
+    <div id="set-select-screen" class="screen">
+      <h2>Eğitim Paketleri</h2>
+      <p>Bulutta kayıtlı tüm paragraf ve soru setleri:</p>
+      <div id="set-list-container" style="max-height:350px; overflow-y:auto; margin-bottom:15px; padding-right:5px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('main-menu')">⬅️ Ana Menüye Dön</button>
+    </div>
+
+    <!-- 4. SINAV / QUIZ EKRANI -->
+    <div id="quiz-screen" class="screen">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid var(--border-color); padding-bottom:10px;">
+        <span id="article-number" style="font-size:13px; color:var(--primary); font-weight:700;">Paragraf 1 / 1</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span id="timer" style="font-size:14px; font-weight:700; color:var(--text-main);">⏱️ 00:00</span>
+          <button id="timer-toggle-btn" class="btn btn-secondary" style="width:auto; padding:6px 10px; margin:0; font-size:12px;" onclick="toggleTimer()">⏸️</button>
+          <button class="btn btn-danger" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="finishExam()">Bitir</button>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc; padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px; max-height:160px; overflow-y:auto;">
+        <h4 id="article-title" style="font-size:14px; color:var(--primary); margin-bottom:6px;">Başlık</h4>
+        <p id="article-text" style="font-size:13px; line-height:1.6; margin-bottom:0; color:var(--text-main);">Metin yükleniyor...</p>
+      </div>
+
+      <div style="margin-bottom:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span id="question-number" style="font-size:12px; color:var(--text-muted); font-weight:600;">Soru 1</span>
+        </div>
+        <h3 id="question-title" style="font-size:15px; margin-bottom:12px; color:var(--text-main);">Soru metni buraya gelecek...</h3>
+        <div id="options-group"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:10px;">
+        <button class="btn btn-secondary" onclick="prevQuestion()">⬅️ Önceki</button>
+        <button class="btn btn-secondary" onclick="toggleAnswerVisibility()">💡 Açıklama</button>
+        <button class="btn btn-primary" onclick="nextQuestion()">Sonraki ➔</button>
+      </div>
+
+      <div id="explanation-box" style="display:none; background:#f0fdf4; border-left:4px solid var(--success); padding:12px; border-radius:4px; font-size:13px; margin-top:10px; color:#166534;"></div>
+    </div>
+
+    <!-- 5. SINAV SONUÇ RAPORU -->
+    <div id="report-screen" class="screen">
+      <h2 style="text-align:center;">Sınav Raporu</h2>
+      <div style="display:flex; justify-content:space-around; background:#f8fafc; padding:16px; border-radius:var(--radius-md); margin:20px 0; border:1px solid var(--border-color);">
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Doğru</p><h3 id="rep-correct" style="color:var(--success); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Yanlış</p><h3 id="rep-wrong" style="color:var(--danger); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Boş</p><h3 id="rep-empty" style="color:var(--text-muted); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Süre</p><h3 id="rep-time" style="color:var(--primary); margin:0;">00:00</h3></div>
+      </div>
+      <h3>Yanlış Yapılan Sorular</h3>
+      <div id="wrong-answers-list" style="max-height:150px; overflow-y:auto; margin-bottom:20px;"></div>
+      <button class="btn btn-primary" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
+    <!-- 6. KELİME DEFTERİ MENÜSÜ -->
+    <div id="vocab-menu-screen" class="screen">
+      <h2>📚 Kelime Defteri & Leitner</h2>
+      <p>Bulutta depolanan kelimeleriniz ve akıllı tekrar havuzunuz:</p>
+      
+      <div style="background:#f8fafc; padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-color); margin-bottom:15px;">
+        <h4 style="font-size:14px; color:var(--primary); margin-bottom:10px;">Yeni Kelime Ekle</h4>
+        <input type="text" id="vocab-word" placeholder="Fransızca Kelime (Örn: Environnement)">
+        <input type="text" id="vocab-meaning" placeholder="Türkçe Anlamı (Örn: Çevre)">
+        <input type="text" id="vocab-synonyms" placeholder="Eş Anlamlılar (Opsiyonel)">
+        <textarea id="vocab-example" placeholder="Örnek Cümle (Opsiyonel)" style="height:50px; resize:none;"></textarea>
+        <button class="btn btn-primary" onclick="handleSaveVocab()">Buluta Kaydet</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+        <button class="btn btn-primary" style="margin:0;" onclick="startFlashcards()">🎴 Leitner Flashcard</button>
+        <button class="btn btn-primary" style="margin:0; background:#0284c7;" onclick="startVocabQuiz()">📝 Quizlet Testi</button>
+      </div>
+      <button class="btn btn-primary" style="background:#0d9488; margin-bottom:15px;" onclick="startVocabMatchingGame()">🎮 Kelime Eşleştirme Oyunu</button>
+
+      <h3>Kayıtlı Kelimelerim</h3>
+      <div id="vocab-list-container" style="max-height:160px; overflow-y:auto; margin-bottom:15px; padding-right:5px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('main-menu')">⬅️ Ana Menüye Dön</button>
+    </div>
+
+    <!-- 7. FLASHCARD ÇALIŞMA EKRANI -->
+    <div id="vocab-study-screen" class="screen" style="text-align:center;">
+      <span id="vocab-counter" style="font-size:13px; color:var(--primary); font-weight:700;">Kart 1 / 10</span>
+      
+      <div id="flashcard-container" style="margin:20px 0; perspective:1000px;" onclick="flipFlashcard()">
+        <div id="flashcard-front" style="background:#f8fafc; border:1px solid var(--border-color); padding:35px 20px; border-radius:var(--radius-lg); min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;">
+          <h2 id="fc-word" style="font-size:28px; color:var(--primary); margin:0;">Kelime</h2>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:12px; margin-bottom:0;">(Anlamını görmek için karta dokun)</p>
+        </div>
+        <div id="flashcard-back" style="display:none; background:#f0fdf4; border:1px solid var(--success); padding:24px; border-radius:var(--radius-lg); min-height:160px; text-align:left;">
+          <h3 id="fc-meaning" style="color:var(--success); font-size:22px; margin-bottom:10px;">Anlam</h3>
+          <p style="font-size:13px; margin-bottom:6px; color:var(--text-main);"><strong>Eş Anlam:</strong> <span id="fc-synonyms">-</span></p>
+          <p style="font-size:13px; font-style:italic; color:var(--text-muted); margin-bottom:0;" id="fc-example">"-"</p>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-danger" onclick="nextFlashcard('again')">Tekrar Et (Kutu 1)</button>
+        <button class="btn btn-primary" onclick="nextFlashcard('good')">Öğrendim (İlerlet)</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('vocab-menu-screen')">Çıkış</button>
+    </div>
+
+    <!-- 8. YÖNETİCİ - SORU YÜKLEME EKRANI -->
+    <div id="upload-screen" class="screen">
+      <h2>Yönetici: Soru Seti Yükle</h2>
+      <p>JSON ile çoklu paragraf yükleyin:</p>
+      
+      <input type="text" id="admin-set-topic" placeholder="Set Konu Başlığı (Örn: Deneme 1)">
+      <input type="date" id="admin-set-date">
+      <textarea id="admin-questions-json" placeholder="JSON verisini buraya yapıştırın..." style="height:140px; font-family:monospace; font-size:12px;"></textarea>
+      
+      <button class="btn btn-primary" onclick="handleSaveCloudSet()">Buluta Kaydet ➔</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="openAdminManager('sets')">📝 Setleri Yönet</button>
+        <button class="btn btn-secondary" onclick="openAdminManager('vocab')">📚 Kelimeleri Yönet</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
+    <!-- 9. YÖNETİCİ - YÖNET / SİL EKRANI -->
+    <div id="admin-manage-screen" class="screen">
+      <h2 id="admin-manager-title">Yönetim Paneli</h2>
+      <div id="admin-manager-list" style="max-height:280px; overflow-y:auto; margin-bottom:15px; padding-right:5px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('upload-screen')">⬅️ Geri Dön</button>
+    </div>
+
+    <!-- 10. E-POSTA HATIRLATICI EKRANI -->
+    <div id="reminder-screen" class="screen">
+      <h2>⏰ Günlük Hatırlatıcı</h2>
+      <p>Her gün çalışma motivasyonu e-postası alın:</p>
+      <input type="email" id="reminder-email" placeholder="E-posta adresiniz...">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+        <input type="checkbox" id="reminder-active" style="width:auto; margin:0; accent-color:var(--primary);">
+        <label for="reminder-active" style="font-size:14px; cursor:pointer;">Hatırlatıcıyı Aktif Et</label>
+      </div>
+      <button class="btn btn-primary" onclick="saveReminderSettings()">Ayarları Kaydet</button>
+      <button class="btn btn-secondary" onclick="sendTestReminderEmail()">Test E-postası Gönder</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

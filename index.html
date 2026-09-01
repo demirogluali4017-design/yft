@@ -1,18 +1,24 @@
-<!DOCTYPE html >
+<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>L'Académie - LMS Eğitim Asistanı</title>
+  
+  <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- EmailJS CDN -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script type="text/javascript">
     (function() {
+      // EmailJS Public Key'inizi buraya girin
       emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
     })();
   </script>
-  <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
+  
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <style>
     :root {
       --bg-color: #f1f5f9;
@@ -56,7 +62,6 @@
       overflow: hidden;
     }
 
-    /* Akıcı ve Yumuşak Ekran Geçişleri */
     .screen {
       display: none;
       opacity: 0;
@@ -93,39 +98,14 @@
       box-shadow: var(--shadow-sm);
     }
 
-    .btn-primary {
-      background: var(--primary);
-      color: #ffffff;
-    }
-    .btn-primary:hover {
-      background: var(--primary-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25);
-    }
+    .btn-primary { background: var(--primary); color: #ffffff; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25); }
 
-    .btn-secondary {
-      background: #f8fafc;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      box-shadow: none;
-    }
-    .btn-secondary:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
-      transform: translateY(-1px);
-    }
+    .btn-secondary { background: #f8fafc; border: 1px solid var(--border-color); color: var(--text-main); box-shadow: none; }
+    .btn-secondary:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); }
 
-    .btn-danger {
-      background: #fef2f2;
-      border: 1px solid #fee2e2;
-      color: var(--danger);
-      box-shadow: none;
-    }
-    .btn-danger:hover {
-      background: var(--danger);
-      color: #fff;
-      transform: translateY(-1px);
-    }
+    .btn-danger { background: #fef2f2; border: 1px solid #fee2e2; color: var(--danger); box-shadow: none; }
+    .btn-danger:hover { background: var(--danger); color: #fff; transform: translateY(-1px); }
 
     input, textarea, select {
       width: 100%;
@@ -175,13 +155,8 @@
       box-shadow: var(--shadow-sm);
       transition: var(--transition-smooth);
     }
-    .set-item-card:hover {
-      border-color: var(--primary);
-      transform: translateY(-3px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
-    }
+    .set-item-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08); }
 
-    /* Özel Kaydırma Çubuğu */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -196,7 +171,7 @@
     <div id="login-screen" class="screen active">
       <div style="text-align:center; padding: 20px 0;">
         <div style="width: 70px; height: 70px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; font-size: 32px;">🇫🇷</div>
-        <h1 style="color:var(--text-main);">YDS Fransızca Asistanı</h1>
+        <h1>YDS Fransızca Asistanı</h1>
         <p>Akademik başarı ve kalıcı hafıza için modern LMS platformu.</p>
       </div>
       <div style="margin-top:20px;">
@@ -291,38 +266,46 @@
         <button class="btn btn-primary" onclick="handleSaveVocab()">Buluta Kaydet</button>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-        <button class="btn btn-primary" style="margin:0;" onclick="startFlashcards()">🎴 Leitner Flashcard</button>
-        <button class="btn btn-primary" style="margin:0; background:#0284c7;" onclick="startVocabQuiz()">📝 Quizlet Testi</button>
-      </div>
-      <button class="btn btn-primary" style="background:#0d9488; margin-bottom:15px;" onclick="startVocabMatchingGame()">🎮 Kelime Eşleştirme Oyunu</button>
+      <button class="btn btn-primary" style="margin-bottom:12px;" onclick="startFlashcards()">🎴 Leitner Flashcard (3D & Sesli)</button>
 
       <h3>Kayıtlı Kelimelerim</h3>
       <div id="vocab-list-container" style="max-height:160px; overflow-y:auto; margin-bottom:15px; padding-right:5px;"></div>
       <button class="btn btn-secondary" onclick="showScreen('main-menu')">⬅️ Ana Menüye Dön</button>
     </div>
 
-    <!-- 7. FLASHCARD ÇALIŞMA EKRANI -->
+    <!-- 7. 3D FLASHCARD ÇALIŞMA EKRANI -->
     <div id="vocab-study-screen" class="screen" style="text-align:center;">
-      <span id="vocab-counter" style="font-size:13px; color:var(--primary); font-weight:700;">Kart 1 / 10</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <span id="vocab-counter" style="font-size:13px; color:var(--primary); font-weight:700;">Kart 1 / 1</span>
+        <button class="btn btn-secondary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="playCurrentVocabAudio()">🔊 Dinle</button>
+      </div>
       
-      <div id="flashcard-container" style="margin:20px 0; perspective:1000px;" onclick="flipFlashcard()">
-        <div id="flashcard-front" style="background:#f8fafc; border:1px solid var(--border-color); padding:35px 20px; border-radius:var(--radius-lg); min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer; transition:var(--transition-smooth);">
-          <h2 id="fc-word" style="font-size:28px; color:var(--primary); margin:0;">Kelime</h2>
-          <p style="font-size:12px; color:var(--text-muted); margin-top:12px; margin-bottom:0;">(Anlamını görmek için karta dokun)</p>
-        </div>
-        <div id="flashcard-back" style="display:none; background:#f0fdf4; border:1px solid var(--success); padding:24px; border-radius:var(--radius-lg); min-height:160px; text-align:left;">
-          <h3 id="fc-meaning" style="color:var(--success); font-size:22px; margin-bottom:10px;">Anlam</h3>
-          <p style="font-size:13px; margin-bottom:6px; color:var(--text-main);"><strong>Eş Anlam:</strong> <span id="fc-synonyms">-</span></p>
-          <p style="font-size:13px; font-style:italic; color:var(--text-muted); margin-bottom:0;" id="fc-example">"-"</p>
+      <!-- 3D Flip Kart -->
+      <div class="flashcard-scene" onclick="toggleCardFlip()" style="perspective: 1000px; width: 100%; height: 210px; cursor: pointer; margin-bottom: 20px;">
+        <div id="card-inner" style="position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d;">
+          
+          <!-- ÖN YÜZ -->
+          <div id="fc-front-face" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: #ffffff; border: 1px solid var(--border-color); border-radius: var(--radius-lg); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-shadow: var(--shadow-sm);">
+            <span id="fc-box-badge" style="background:#e0f2fe; color:#0369a1; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; margin-bottom:10px;">Kutu 1</span>
+            <h2 id="fc-word" style="font-size:30px; color:var(--primary); margin:0;">Kelime</h2>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:10px; margin-bottom:0;">(Çevirmek için tıkla)</p>
+          </div>
+
+          <!-- ARKA YÜZ -->
+          <div id="fc-back-face" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; background: #f0fdf4; border: 1px solid var(--success); border-radius: var(--radius-lg); display: flex; flex-direction: column; justify-content: center; align-items: start; padding: 20px; transform: rotateY(180deg); box-shadow: var(--shadow-sm); text-align: left;">
+            <h3 id="fc-meaning" style="color:var(--success); font-size:22px; margin-bottom:6px;">Anlam</h3>
+            <p style="font-size:13px; margin-bottom:4px; color:var(--text-main);"><strong>Eş Anlam:</strong> <span id="fc-synonyms">-</span></p>
+            <p style="font-size:13px; font-style:italic; color:var(--text-muted); margin-bottom:0;" id="fc-example">"-"</p>
+          </div>
+
         </div>
       </div>
 
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-danger" onclick="nextFlashcard('again')">Tekrar Et (Kutu 1)</button>
-        <button class="btn btn-primary" onclick="nextFlashcard('good')">Öğrendim (İlerlet)</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="handleVocabAnswer('again')">Tekrar Et ❌</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="handleVocabAnswer('good')">Öğrendim ✅</button>
       </div>
-      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('vocab-menu-screen')">Çıkış</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('vocab-menu-screen')">⬅️ Geri Dön</button>
     </div>
 
     <!-- 8. YÖNETİCİ - SORU YÜKLEME EKRANI -->
@@ -365,7 +348,8 @@
 
   </div>
 
+  <!-- JS Dosya Sıralaması -->
   <script src="app.js"></script>
+  <script src="vocabQuiz.js"></script>
 </body>
 </html>
-

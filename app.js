@@ -27,6 +27,13 @@ let quizVocabList = [];
 let currentQuizIndex = 0;
 let quizScore = 0;
 
+// Eşleştirme oyunu değişkenleri
+let matchVocabList = [];
+let selectedWordCard = null;
+let selectedMeaningCard = null;
+let matchedPairsCount = 0;
+let matchStartTime = 0;
+
 window.onload = function() {
   const todayDateStr = new Date().toISOString().split('T')[0];
   const dateInput = document.getElementById("admin-set-date");
@@ -46,11 +53,7 @@ function showScreen(screenId) {
   document.getElementById(screenId).classList.add('active');
   currentScreen = screenId;
 
-  if (screenId === 'history-screen') {
-    renderHistory();
-  } else if (screenId === 'analytics-screen') {
-    renderAnalytics('weekly');
-  } else if (screenId === 'vocab-menu-screen') {
+  if (screenId === 'vocab-menu-screen') {
     renderVocabList();
   } else if (screenId === 'reminder-screen') {
     loadReminderSettings();
@@ -189,7 +192,7 @@ async function openSetSelection() {
           <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${displayName}</h3>
           <p style="font-size:12px; color:#94a3b8;">${totalQCount} Soru • ${set.date || ''}</p>
         </div>
-        <button class="btn btn-primary" style="font-size:12px; padding:6px 12px;">Çöz ➔</button>
+        <button class="btn btn-primary" style="font-size:12px; padding:6px 12px; width:auto; margin:0;">Çöz ➔</button>
       </div>
     `;
   });
@@ -369,11 +372,11 @@ async function renderVocabList() {
   let html = "";
   vocabList.forEach((v) => {
     html += `
-      <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+      <div style="background:#0f172a; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <strong style="color:#38bdf8; font-size:14px;">${v.word}</strong> - <span style="color:#e2e8f0; font-size:13px;">${v.meaning}</span>
         </div>
-        <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteVocab('${v.id}')">Sil</button>
+        <button class="btn btn-danger" style="padding:4px 8px; font-size:11px; width:auto; margin:0;" onclick="deleteVocab('${v.id}')">Sil</button>
       </div>
     `;
   });
@@ -395,7 +398,7 @@ async function deleteVocab(vocabId) {
   }
 }
 
-// --- QUIZLET TARZI ÇALIŞMA MODLARI ---
+// --- ÇALIŞMA VE OYUN MODLARI (FLASHCARD, QUIZ, MATCH) ---
 
 async function startFlashcards() {
   const { data: vocabList, error } = await supabaseClient
@@ -484,11 +487,11 @@ function renderCurrentQuizQuestion() {
   if(container) {
     showScreen('vocab-study-screen');
     document.getElementById("vocab-counter").innerText = `Kelime Quizi (${currentQuizIndex + 1}/${quizVocabList.length})`;
-    document.getElementById("fc-word").innerHTML = `<span style="font-size:22px; color:#38bdf8;">${currentItem.word}</span>`;
+    document.getElementById("fc-word").innerHTML = `<span style="font-size:20px; color:#38bdf8;">${currentItem.word}</span>`;
     
-    let optButtonsHtml = "<div style='margin-top:15px;'>";
+    let optButtonsHtml = "<div style='margin-top:10px; text-align:left;'>";
     options.forEach(opt => {
-      optButtonsHtml += `<button class='btn' style='width:100%; margin-bottom:8px; background:#334155; color:#fff; border:1px solid #475569; text-align:left; padding:10px;' onclick="evaluateQuizAnswer('${opt.replace(/'/g, "\\'")}', '${currentItem.meaning.replace(/'/g, "\\'")}')">${opt}</button>`;
+      optButtonsHtml += `<button class='btn' style='width:100%; margin-bottom:6px; background:#1e293b; color:#fff; border:1px solid #334155; padding:10px; font-size:13px;' onclick="evaluateQuizAnswer('${opt.replace(/'/g, "\\'")}', '${currentItem.meaning.replace(/'/g, "\\'")}')">${opt}</button>`;
     });
     optButtonsHtml += "</div>";
     
@@ -509,6 +512,114 @@ function evaluateQuizAnswer(selected, correct) {
   }
   currentQuizIndex++;
   renderCurrentQuizQuestion();
+}
+
+// Kelime Eşleştirme Oyunu (Match Modu)
+async function startVocabMatchingGame() {
+  const { data: vocabList, error } = await supabaseClient
+    .from('user_vocab')
+    .select('*')
+    .eq('username', currentUser);
+
+  if (error || !vocabList || vocabList.length < 4) {
+    alert("⚠️ Eşleştirme oyunu oynayabilmek için bulutta en az 4 kelimen olmalıdır!");
+    return;
+  }
+
+  matchVocabList = vocabList.sort(() => Math.random() - 0.5).slice(0, 6);
+  matchedPairsCount = 0;
+  selectedWordCard = null;
+  selectedMeaningCard = null;
+  matchStartTime = Date.now();
+
+  renderMatchingScreen();
+}
+
+function renderMatchingScreen() {
+  showScreen('vocab-study-screen');
+  document.getElementById("vocab-counter").innerText = `Kelime Eşleştirme (Bulunan: ${matchedPairsCount}/${matchVocabList.length})`;
+  document.getElementById("fc-word").innerHTML = "<p style='font-size:13px; color:#94a3b8; margin:0;'>Fransızca kelime ile doğru Türkçe anlamını eşleştirin:</p>";
+
+  let words = matchVocabList.map(v => ({ id: v.id, text: v.word, type: 'word' })).sort(() => Math.random() - 0.5);
+  let meanings = matchVocabList.map(v => ({ id: v.id, text: v.meaning, type: 'meaning' })).sort(() => Math.random() - 0.5);
+
+  let html = `
+    <div style="display: flex; gap: 10px; margin-top: 10px; justify-content: space-between;">
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;" id="match-words-col">
+        <h4 style="color:#38bdf8; font-size:12px; margin-bottom:2px;">Fransızca</h4>
+  `;
+  words.forEach(w => {
+    html += `<button class="btn match-card" id="card_${w.id}_word" style="background:#0f172a; color:#fff; border:1px solid #334155; padding:8px; font-size:12px; margin:0;" onclick="selectMatchCard('${w.id}', 'word', this)">${w.text}</button>`;
+  });
+  html += `</div>`;
+
+  html += `
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;" id="match-meanings-col">
+        <h4 style="color:#38bdf8; font-size:12px; margin-bottom:2px;">Türkçe</h4>
+  `;
+  meanings.forEach(m => {
+    html += `<button class="btn match-card" id="card_${m.id}_meaning" style="background:#0f172a; color:#fff; border:1px solid #334155; padding:8px; font-size:12px; margin:0;" onclick="selectMatchCard('${m.id}', 'meaning', this)">${m.text}</button>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById("fc-meaning").innerHTML = html;
+  document.getElementById("fc-synonyms").innerText = "";
+  document.getElementById("fc-example").innerText = "";
+  document.getElementById("flashcard-front").style.display = "block";
+  document.getElementById("flashcard-back").style.display = "none";
+}
+
+function selectMatchCard(id, type, element) {
+  if (element.style.opacity === "0.3") return;
+
+  document.querySelectorAll('.match-card').forEach(btn => {
+    if (btn.style.opacity !== "0.3") btn.style.background = "#0f172a";
+  });
+
+  if (type === 'word') {
+    selectedWordCard = id;
+    element.style.background = "#0284c7";
+  } else {
+    selectedMeaningCard = id;
+    element.style.background = "#0284c7";
+  }
+
+  element.style.borderColor = "#38bdf8";
+
+  if (selectedWordCard && selectedMeaningCard) {
+    const wordEl = document.getElementById(`card_${selectedWordCard}_word`);
+    const meaningEl = document.getElementById(`card_${selectedMeaningCard}_meaning`);
+
+    if (selectedWordCard === selectedMeaningCard) {
+      wordEl.style.background = "#10b981";
+      meaningEl.style.background = "#10b981";
+      wordEl.style.opacity = "0.3";
+      meaningEl.style.opacity = "0.3";
+      
+      matchedPairsCount++;
+      document.getElementById("vocab-counter").innerText = `Kelime Eşleştirme (Bulunan: ${matchedPairsCount}/${matchVocabList.length})`;
+
+      if (matchedPairsCount === matchVocabList.length) {
+        const totalSeconds = Math.floor((Date.now() - matchStartTime) / 1000);
+        setTimeout(() => {
+          alert(`🎉 Tebrikler! Tüm kelimeleri ${totalSeconds} saniyede başarıyla eşleştirdin.`);
+          showScreen('vocab-menu-screen');
+        }, 300);
+      }
+    } else {
+      wordEl.style.background = "#ef4444";
+      meaningEl.style.background = "#ef4444";
+      setTimeout(() => {
+        wordEl.style.background = "#0f172a";
+        meaningEl.style.background = "#0f172a";
+        wordEl.style.borderColor = "#334155";
+        meaningEl.style.borderColor = "#334155";
+      }, 500);
+    }
+
+    selectedWordCard = null;
+    selectedMeaningCard = null;
+  }
 }
 
 // --- YÖNETİCİ MODÜLLERİ ---
@@ -534,9 +645,9 @@ async function openAdminManager(type) {
     let html = "";
     rawSets.forEach((set) => {
       html += `
-        <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background:#0f172a; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <div><strong style="color:#38bdf8; font-size:14px;">${set.topic}</strong> <span style="font-size:11px; color:#94a3b8;">(${set.date})</span></div>
-          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteCloudSet('${set.id}')">Sil</button>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px; width:auto; margin:0;" onclick="deleteCloudSet('${set.id}')">Sil</button>
         </div>
       `;
     });
@@ -559,9 +670,9 @@ async function openAdminManager(type) {
     let html = "";
     vocabList.forEach((v) => {
       html += `
-        <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div style="background:#0f172a; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
           <div><strong style="color:#38bdf8; font-size:14px;">${v.word}</strong> - <span style="font-size:12px; color:#94a3b8;">${v.meaning}</span></div>
-          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteAdminVocab('${v.id}')">Sil</button>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px; width:auto; margin:0;" onclick="deleteAdminVocab('${v.id}')">Sil</button>
         </div>
       `;
     });

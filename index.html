@@ -2,465 +2,224 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>YDS Fransızca - Çalışma Portalı</title>
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YDS Fransızca Asistanı</title>
+  <!-- Supabase Kütüphanesi -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- EmailJS Kütüphanesi -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script type="text/javascript">
-     (function(){
-        emailjs.init({
-          publicKey: "G7rZjDwlhV1o6PesF",
-        });
-     })();
+    (function() {
+      emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // Kendi EmailJS anahtarını buraya yazabilirsin
+    })();
   </script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; height: 100vh; overflow: hidden; }
-
-    .screen { display: none; height: 100vh; width: 100%; overflow-y: auto; flex-direction: column; animation: fadeIn 0.4s ease-in-out; }
-    .screen.active { display: flex; }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --border-color: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --danger: #ef4444;
+      --success: #10b981;
     }
-
-    .screen:not(#quiz-screen) {
-      position: relative;
-      overflow: hidden;
-    }
-
-    .screen:not(#quiz-screen)::before {
-      content: "🗼 ⚜️ 🥐 🇫🇷 ☕ 🗼 ⚜️";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      font-size: 80px;
-      color: rgba(255, 255, 255, 0.018);
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-around;
-      align-content: space-around;
-      transform: rotate(-15deg);
-      pointer-events: none;
-      z-index: 0;
-      animation: floatingIcons 35s linear infinite;
-    }
-
-    @keyframes floatingIcons {
-      0% { transform: rotate(-15deg) translateY(0); }
-      50% { transform: rotate(-15deg) translateY(-30px); }
-      100% { transform: rotate(-15deg) translateY(0); }
-    }
-
-    .screen:not(#quiz-screen)::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
-                  radial-gradient(circle at 20% 80%, rgba(129, 140, 248, 0.05) 0%, transparent 40%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .screen:not(#quiz-screen) > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    #login-screen, #main-menu { justify-content: center; align-items: center; text-align: center; padding: 20px; }
-    .login-box { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); padding: 35px; border-radius: 16px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .login-box input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; outline: none; transition: 0.3s; }
-    .login-box input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
-
-    #main-menu h1 { font-size: 28px; margin-bottom: 5px; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .menu-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; margin-bottom: 25px; max-width: 520px; }
-    
-    .menu-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 18px; border-radius: 14px; width: 155px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .menu-card:hover { transform: translateY(-6px) scale(1.03); background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2); }
-    .menu-card h3 { font-size: 15px; color: #e2e8f0; }
-
-    .container { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 750px; margin: auto; display: flex; flex-direction: column; min-height: 85vh; justify-content: space-between; }
-    
-    .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-align: center; font-size: 14px; }
-    .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
-    .btn:active { transform: translateY(0); }
-    .btn-primary { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
-    .btn-secondary { background: #475569; color: white; }
-    .btn-danger { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
-    .btn-warning { background: #f59e0b; color: #0f172a; }
-    .btn-info { background: #06b6d4; color: white; }
-    .btn-success { background: #10b981; color: white; }
-
-    #quiz-screen { flex-direction: column; height: 100vh; background: #0f172a; }
-    #top-bar { background: #1e293b; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    #workspace { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-    
-    #article-panel { flex: 0 0 42%; padding: 20px; border-bottom: 2px solid #334155; overflow-y: auto; background-color: #0f172a; }
-    #article-number { font-size: 12px; color: #38bdf8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-    #article-title { font-size: 17px; margin: 6px 0 10px 0; color: #f8fafc; font-weight: 600; }
-    #article-text { line-height: 1.7; font-size: 14px; text-align: justify; color: #cbd5e1; }
-
-    #question-panel { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; background: #1e293b; }
-    
-    .timer-controls { display: flex; align-items: center; gap: 8px; }
-    .timer-badge { background: #0f172a; color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-family: monospace; font-size: 14px; font-weight: bold; border: 1px solid #334155; }
-
-    .option-btn { text-align: left; padding: 12px 16px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px; transition: 0.2s; }
-    .option-btn:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); }
-    .option-btn.selected { background-color: #0ea5e9; border-color: #0ea5e9; color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
-    
-    .explanation-box { margin-top: 12px; padding: 14px; background: #0f172a; border-left: 4px solid #06b6d4; border-radius: 8px; font-size: 13px; display: none; color: #cbd5e1; }
-    
-    .history-card { border: 1px solid #334155; padding: 14px; border-radius: 10px; margin-bottom: 12px; background: #0f172a; font-size: 14px; }
-    .stat-box { display: flex; justify-content: space-between; background: #0f172a; padding: 14px; border-radius: 10px; margin-bottom: 18px; text-align: center; border: 1px solid #334155; }
-
-    .set-item-card { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
-    .set-item-card:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); }
-
-    .flashcard { background: #0f172a; border: 2px solid #334155; border-radius: 16px; padding: 30px; text-align: center; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: 0.3s; }
-    .flashcard:hover { border-color: #38bdf8; }
-
-    .app-footer { text-align: center; padding: 12px; font-size: 12px; color: #64748b; font-style: italic; letter-spacing: 0.5px; width: 100%; margin-top: auto; }
-    .app-footer span { font-weight: 600; color: #94a3b8; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 10px; }
+    .container { width: 100%; max-width: 600px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    h1, h2, h3 { color: var(--text-main); margin-bottom: 12px; }
+    p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
+    .btn { display: inline-block; width: 100%; padding: 12px; border-radius: 8px; border: none; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; margin-bottom: 10px; transition: background 0.2s; }
+    .btn-primary { background: var(--primary); color: #0f172a; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-secondary { background: #334155; color: #fff; }
+    .btn-secondary:hover { background: #475569; }
+    input, textarea, select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; border: 1px solid var(--border-color); color: var(--text-main); font-size: 14px; margin-bottom: 12px; }
+    input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+    .option-btn { width: 100%; text-align: left; padding: 12px; background: #1e293b; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); margin-bottom: 8px; cursor: pointer; }
+    .option-btn.selected { border-color: var(--primary); background: #0369a1; }
+    .set-item-card { background: #0f172a; border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .set-item-card:hover { border-color: var(--primary); }
   </style>
 </head>
 <body>
 
-  <div id="login-screen" class="screen active">
-    <div class="login-box">
-      <h2>🇫🇷 YDS Fransızca</h2>
-      <p style="margin-top:8px; font-size:14px; color:#94a3b8;">Kişisel profilinle devam etmek için adını gir</p>
-      <input type="text" id="username-input" placeholder="Adın veya Kullanıcı Adın...">
-      <button class="btn btn-primary" style="width:100%; padding: 12px;" onclick="handleLogin()">🚀 Portala Giriş Yap</button>
-    </div>
-    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-  </div>
+  <div class="container">
 
-  <div id="main-menu" class="screen">
-    <div>
-      <h1>🇫🇷 YDS Fransızca Portalı</h1>
-      <p style="color:#94a3b8; margin-top:4px;">Aktif Profil: <strong id="welcome-username" style="color:#38bdf8;"></strong></p>
-      
-      <div class="menu-cards" style="margin: 25px auto;">
-        <div class="menu-card" onclick="openSetSelection()"><h3>📝 Soru Çöz</h3></div>
-        <div class="menu-card" onclick="showScreen('vocab-menu-screen')"><h3>📚 Kelime Defteri</h3></div>
-        <div class="menu-card" onclick="openReminderScreen()"><h3>⏰ Hatırlatıcı</h3></div>
-        <div class="menu-card" onclick="checkAdminAccess()"><h3>🔒 Yönetici Paneli</h3></div>
-        <div class="menu-card" onclick="showScreen('history-screen')"><h3>📜 Geçmişim</h3></div>
-        <div class="menu-card" onclick="showScreen('analytics-screen')"><h3>📊 Grafik Analiz</h3></div>
+    <!-- 1. GİRİŞ EKRANI -->
+    <div id="login-screen" class="screen active">
+      <h1 style="text-align:center; color:var(--primary);">YDS Fransızca Asistanı</h1>
+      <p style="text-align:center;">Akademik başarı için bulut tabanlı çalışma platformu.</p>
+      <div style="margin-top:30px;">
+        <input type="text" id="username-input" placeholder="Adınızı girin...">
+        <button class="btn btn-primary" onclick="handleLogin()">Giriş Yap ➔</button>
+      </div>
+    </div>
+
+    <!-- 2. ANA MENÜ EKRANI -->
+    <div id="main-menu" class="screen">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h2>Bonjour, <span id="welcome-username" style="color:var(--primary);"></span></h2>
+        <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:12px;" onclick="handleLogout()">Çıkış</button>
       </div>
       
-      <div style="display: flex; gap: 10px; justify-content: center;">
-        <button class="btn btn-secondary" onclick="handleLogout()" style="font-size:12px; padding:8px 14px;">👤 Profil Değiştir</button>
-        <button class="btn btn-danger" onclick="confirmResetUserData()" style="font-size:12px; padding:8px 14px;">🗑️ Verilerimi Sıfırla</button>
-      </div>
+      <button class="btn btn-primary" onclick="openSetSelection()">📝 Soru Seti Çöz (Denemeler)</button>
+      <button class="btn btn-secondary" onclick="showScreen('vocab-menu-screen')">📚 Kelime Defteri & Quizler</button>
+      <button class="btn btn-secondary" onclick="openReminderScreen()">⏰ Günlük E-posta Hatırlatıcı</button>
+      <button class="btn btn-secondary" onclick="checkAdminAccess()">⚙️ Yönetici Paneli</button>
+      <button class="btn btn-secondary" style="background:#451a03; color:#fdba74; margin-top:20px;" onclick="confirmResetUserData()">⚠️ Tüm Verileri Sıfırla</button>
     </div>
-    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+
+    <!-- 3. SORU SETİ SEÇİM EKRANI -->
+    <div id="set-select-screen" class="screen">
+      <h2>Soru Seti Seçin</h2>
+      <p>Bulutta kayıtlı tüm paragraf ve soru paketleri:</p>
+      <div id="set-list-container" style="max-height:350px; overflow-y:auto; margin-bottom:15px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('main-menu')">⬅️ Ana Menüye Dön</button>
+    </div>
+
+    <!-- 4. SINAV / QUIZ EKRANI (Çoklu Paragraf Destekli) -->
+    <div id="quiz-screen" class="screen">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+        <span id="article-number" style="font-size:13px; color:var(--primary); font-weight:600;">Paragraf 1 / 1</span>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <span id="timer" style="font-size:14px; font-weight:bold; color:var(--primary);">⏱️ 00:00</span>
+          <button id="timer-toggle-btn" class="btn btn-secondary" style="width:auto; padding:4px 8px; margin:0; font-size:12px;" onclick="toggleTimer()">⏸️</button>
+          <button class="btn btn-danger" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="finishExam()">Bitir</button>
+        </div>
+      </div>
+
+      <!-- Paragraf Alanı -->
+      <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:15px; max-height:160px; overflow-y:auto;">
+        <h4 id="article-title" style="font-size:14px; color:var(--primary); margin-bottom:6px;">Başlık</h4>
+        <p id="article-text" style="font-size:13px; line-height:1.4; margin-bottom:0;">Metin yükleniyor...</p>
+      </div>
+
+      <!-- Soru Alanı -->
+      <div style="margin-bottom:15px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span id="question-number" style="font-size:12px; color:var(--text-muted);">Soru 1</span>
+        </div>
+        <h3 id="question-title" style="font-size:15px; margin-bottom:12px;">Soru metni buraya gelecek...</h3>
+        <div id="options-group"></div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; gap:10px; margin-bottom:10px;">
+        <button class="btn btn-secondary" onclick="prevQuestion()">⬅️ Önceki</button>
+        <button class="btn btn-secondary" onclick="toggleAnswerVisibility()">💡 Açıklama</button>
+        <button class="btn btn-primary" onclick="nextQuestion()">Sonraki ➔</button>
+      </div>
+
+      <div id="explanation-box" style="display:none; background:#0f172a; border-left:4px solid var(--primary); padding:10px; border-radius:4px; font-size:13px; margin-top:10px;"></div>
+    </div>
+
+    <!-- 5. SINAV SONUÇ RAPORU -->
+    <div id="report-screen" class="screen">
+      <h2 style="text-align:center; color:var(--primary);">Sınav Sonucu</h2>
+      <div style="display:flex; justify-content:space-around; background:#0f172a; padding:15px; border-radius:8px; margin:15px 0; border:1px solid var(--border-color);">
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Doğru</p><h3 id="rep-correct" style="color:var(--success); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Yanlış</p><h3 id="rep-wrong" style="color:var(--danger); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Boş</p><h3 id="rep-empty" style="color:var(--text-muted); margin:0;">0</h3></div>
+        <div style="text-align:center;"><p style="margin:0; font-size:12px;">Süre</p><h3 id="rep-time" style="color:var(--primary); margin:0;">00:00</h3></div>
+      </div>
+      <h3>Yanlış Yapılan Sorular</h3>
+      <div id="wrong-answers-list" style="max-height:150px; overflow-y:auto; margin-bottom:15px;"></div>
+      <button class="btn btn-primary" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
+    <!-- 6. KELİME DEFTERİ MENÜSÜ -->
+    <div id="vocab-menu-screen" class="screen">
+      <h2>📚 Kelime Defteri & Çalışma</h2>
+      <p>Bulutta depolanan kelimelerin:</p>
+      
+      <div style="background:#0f172a; padding:12px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:15px;">
+        <h4 style="font-size:14px; color:var(--primary); margin-bottom:8px;">Yeni Kelime Ekle</h4>
+        <input type="text" id="vocab-word" placeholder="Fransızca Kelime (Örn: Environnement)">
+        <input type="text" id="vocab-meaning" placeholder="Türkçe Anlamı (Örn: Çevre)">
+        <input type="text" id="vocab-synonyms" placeholder="Eş Anlamlılar (Opsiyonel)">
+        <textarea id="vocab-example" placeholder="Örnek Cümle (Opsiyonel)" style="height:50px; resize:none;"></textarea>
+        <button class="btn btn-primary" onclick="handleSaveVocab()">Buluta Kaydet</button>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button class="btn btn-primary" style="margin:0;" onclick="startFlashcards()">🎴 Flashcard Çalış</button>
+        <button class="btn btn-primary" style="margin:0; background:#0284c7;" onclick="startVocabQuiz()">📝 Quizlet Testi</button>
+      </div>
+      <button class="btn btn-primary" style="background:#0d9488; margin-bottom:15px;" onclick="startVocabMatchingGame()">🎮 Kelime Eşleştirme Oyunu</button>
+
+      <h3>Kayıtlı Kelimelerim</h3>
+      <div id="vocab-list-container" style="max-height:180px; overflow-y:auto; margin-bottom:15px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('main-menu')">⬅️ Ana Menüye Dön</button>
+    </div>
+
+    <!-- 7. FLASHCARD / QUIZ / EŞLEŞTİRME ÇALIŞMA EKRANI -->
+    <div id="vocab-study-screen" class="screen" style="text-align:center;">
+      <span id="vocab-counter" style="font-size:13px; color:var(--primary); font-weight:600;">Kart 1 / 10</span>
+      
+      <div id="flashcard-container" style="margin:20px 0; perspective:1000px;" onclick="flipFlashcard()">
+        <div id="flashcard-front" style="background:#0f172a; border:1px solid var(--border-color); padding:30px; border-radius:12px; min-height:160px; display:flex; flex-direction:column; justify-content:center; align-items:center; cursor:pointer;">
+          <h2 id="fc-word" style="font-size:26px; color:var(--primary); margin:0;">Kelime</h2>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:10px;">(Anlamını görmek için kartı çevir)</p>
+        </div>
+        <div id="flashcard-back" style="display:none; background:#0f172a; border:1px solid var(--primary); padding:20px; border-radius:12px; min-height:160px; text-align:left;">
+          <h3 id="fc-meaning" style="color:var(--success); font-size:20px; margin-bottom:8px;">Anlam</h3>
+          <p style="font-size:13px; margin-bottom:4px;"><strong>Eş Anlam:</strong> <span id="fc-synonyms">-</span></p>
+          <p style="font-size:13px; font-style:italic; color:var(--text-muted);" id="fc-example">"-"</p>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-danger" onclick="nextFlashcard('again')">Tekrar Et</button>
+        <button class="btn btn-primary" onclick="nextFlashcard('good')">Öğrendim</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('vocab-menu-screen')">Çıkış</button>
+    </div>
+
+    <!-- 8. YÖNETİCİ - SORU YÜKLEME EKRANI -->
+    <div id="upload-screen" class="screen">
+      <h2>Yönetici: Soru Seti Yükle</h2>
+      <p>Tek bir JSON ile çoklu paragraf yükleyebilirsiniz:</p>
+      
+      <input type="text" id="admin-set-topic" placeholder="Set Konu Başlığı (Örn: Deneme 1)">
+      <input type="date" id="admin-set-date">
+      <textarea id="admin-questions-json" placeholder="JSON verisini buraya yapıştırın..." style="height:150px; font-family:monospace; font-size:12px;"></textarea>
+      
+      <button class="btn btn-primary" onclick="handleSaveCloudSet()">Buluta Kaydet ➔</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" onclick="openAdminManager('sets')">📝 Setleri Yönet</button>
+        <button class="btn btn-secondary" onclick="openAdminManager('vocab')">📚 Kelimeleri Yönet</button>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
+    <!-- 9. YÖNETİCİ - YÖNET / SİL EKRANI -->
+    <div id="admin-manage-screen" class="screen">
+      <h2 id="admin-manager-title">Yönetim Paneli</h2>
+      <div id="admin-manager-list" style="max-height:280px; overflow-y:auto; margin-bottom:15px;"></div>
+      <button class="btn btn-secondary" onclick="showScreen('upload-screen')">⬅️ Geri Dön</button>
+    </div>
+
+    <!-- 10. E-POSTA HATIRLATICI EKRANI -->
+    <div id="reminder-screen" class="screen">
+      <h2>⏰ Günlük Hatırlatıcı</h2>
+      <p>Her gün çalışma motivasyonu e-postası alın:</p>
+      <input type="email" id="reminder-email" placeholder="E-posta adresiniz...">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+        <input type="checkbox" id="reminder-active" style="width:auto; margin:0;">
+        <label for="reminder-active" style="font-size:14px; cursor:pointer;">Hatırlatıcıyı Aktif Et</label>
+      </div>
+      <button class="btn btn-primary" onclick="saveReminderSettings()">Ayarları Kaydet</button>
+      <button class="btn btn-secondary" onclick="sendTestReminderEmail()">Test E-postası Gönder</button>
+      <button class="btn btn-secondary" style="margin-top:10px;" onclick="showScreen('main-menu')">Ana Menüye Dön</button>
+    </div>
+
   </div>
 
-  <div id="set-select-screen" class="screen" style="padding: 15px;">
-    <div class="container">
-      <div>
-        <h2>Çözmek İstediğiniz Konuyu Seçin</h2>
-        <div id="set-list-container" style="margin-top: 15px; max-height: 52vh; overflow-y: auto;"></div>
-      </div>
-      <div style="margin-top: 15px;">
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="reminder-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 550px;">
-      <div>
-        <h2>⏰ Günlük E-Posta Hatırlatıcısı</h2>
-        <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Çalışmalarını aksatmamak için her gün e-posta kutuna hatırlatıcı mesajı gönderelim.</p>
-        
-        <div style="margin: 15px 0;">
-          <label style="font-size:13px; color:#94a3b8;">E-Posta Adresin:</label>
-          <input type="email" id="reminder-email" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;" placeholder="ornek@mail.com">
-        </div>
-
-        <div style="margin: 15px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Hatırlatıcı Durumu:</label>
-          <div style="margin-top: 5px;">
-            <label style="font-size:14px; cursor:pointer;"><input type="checkbox" id="reminder-active" style="margin-right:8px;"> Her Gün Hatırlatıcı Gönder</label>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" style="flex:2;" onclick="saveReminderSettings()">💾 Ayarları Kaydet</button>
-          <button class="btn btn-success" style="flex:1;" onclick="sendTestReminderEmail()">✉️ Şimdi Test Et</button>
-        </div>
-      </div>
-      <div style="margin-top: 15px;">
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="vocab-menu-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 600px;">
-      <div>
-        <h2>📚 Quizlet Tarzı Kelime Defteri</h2>
-        <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Öğrendiğin kelimeleri ekle, eş anlamlılarını yaz ve kartlarla pratik yap.</p>
-        
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin: 25px 0;">
-          <button class="btn btn-primary" style="padding:20px; font-size:15px;" onclick="showScreen('vocab-add-screen')">➕ Yeni Kelime Ekle</button>
-          <button class="btn btn-success" style="padding:20px; font-size:15px;" onclick="startFlashcards()">🔄 Kelimeleri Tekrar Et</button>
-        </div>
-
-        <h3 style="font-size:15px; margin-bottom:10px;">📖 Kayıtlı Kelimelerim</h3>
-        <div id="vocab-list-container" style="max-height: 250px; overflow-y: auto; background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;"></div>
-      </div>
-      <div style="margin-top: 15px;">
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="vocab-add-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 600px;">
-      <div>
-        <h2>➕ Kelime Kartı Ekle</h2>
-        
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Fransızca Kelime / İfade:</label>
-          <input type="text" id="vocab-word" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Cependant">
-        </div>
-
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Türkçe Anlamı:</label>
-          <input type="text" id="vocab-meaning" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Ancak, hâlbuki">
-        </div>
-
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Eş Anlamlıları (Virgülle ayırabilirsin):</label>
-          <input type="text" id="vocab-synonyms" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Néanmoins, pourtant, toutefois">
-        </div>
-
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Örnek Cümle (Fransızca):</label>
-          <textarea id="vocab-example" style="width:100%; height:70px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Il est intelligent; cependant, il est paresseux."></textarea>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-secondary" onclick="showScreen('vocab-menu-screen')" style="flex:1;">İptal</button>
-          <button class="btn btn-primary" onclick="handleSaveVocab()" style="flex:2;">💾 Kelimeyi Kaydet</button>
-        </div>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="vocab-study-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 600px; text-align: center;">
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-          <span id="vocab-counter" style="font-size:13px; color:#38bdf8; font-weight:bold;">Kart 1 / 10</span>
-          <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('vocab-menu-screen')">✖ Çıkış</button>
-        </div>
-
-        <div class="flashcard" onclick="flipFlashcard()">
-          <div id="flashcard-front">
-            <h2 id="fc-word" style="font-size:28px; color:#38bdf8; margin-bottom:10px;">-</h2>
-            <p style="font-size:13px; color:#94a3b8;">(Anlamını görmek için karta tıkla)</p>
-          </div>
-          <div id="flashcard-back" style="display:none;">
-            <h3 id="fc-meaning" style="font-size:22px; color:#10b981; margin-bottom:8px;">-</h3>
-            <p style="font-size:14px; color:#cbd5e1; margin-bottom:6px;"><strong>Eş Anlamlılar:</strong> <span id="fc-synonyms">-</span></p>
-            <p style="font-size:13px; color:#94a3b8; font-style:italic;" id="fc-example">-</p>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:25px;">
-          <button class="btn btn-danger" style="flex:1;" onclick="nextFlashcard('again')">🔴 Hatırlamadım</button>
-          <button class="btn btn-success" style="flex:1;" onclick="nextFlashcard('known')">🟢 Biliyorum</button>
-        </div>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="upload-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 650px;">
-      <div>
-        <h2>🔑 Yönetici Kontrol Paneli</h2>
-        <p style="font-size:13px; color:#38bdf8; margin-bottom:20px;">Soru setleri ve içerikleri bulut veritabanından yönetebilirsin.</p>
-        
-        <div style="display:grid; grid-template-columns: 1fr; gap:12px; margin-top:15px;">
-          <button class="btn btn-primary" style="padding:16px; font-size:15px;" onclick="showScreen('admin-add-set-screen')">➕ Yeni Soru Seti Ekle (Buluta)</button>
-          <button class="btn btn-info" style="padding:16px; font-size:15px;" onclick="openAdminManager('sets')">📝 Soru Setlerini Yönet / Sil</button>
-          <button class="btn btn-secondary" style="padding:16px; font-size:15px;" onclick="openAdminManager('vocab')">📚 Öğrenilen Kelimeleri Yönet / Sil</button>
-        </div>
-      </div>
-      <div style="margin-top: 20px;">
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menüye Dön</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="admin-add-set-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 650px;">
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2>➕ Buluta Yeni Soru Seti Ekle</h2>
-          <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('upload-screen')">⬅️ Geri</button>
-        </div>
-        <p style="font-size:13px; color:#94a3b8; margin-bottom:15px;">Aşağıdaki alanlara bilgileri girerek doğrudan Supabase veritabanına kaydedebilirsin.</p>
-
-        <div style="margin: 12px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Konu / Başlık:</label>
-          <input type="text" id="admin-set-topic" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: YDS Fransızca - Bağlaç Denemesi 1">
-        </div>
-
-        <div style="margin: 12px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Tarih:</label>
-          <input type="date" id="admin-set-date" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;">
-        </div>
-
-        <div style="margin: 12px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Sorular ve Seçenekler (JSON Kodu):</label>
-          <textarea id="admin-questions-json" style="width:100%; height:200px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; font-family:monospace; font-size:12px;" placeholder='[
-  {
-    "question": "Soru metni buraya gelecek?",
-    "options": {
-      "a": "Seçenek A",
-      "b": "Seçenek B",
-      "c": "Seçenek C",
-      "d": "Seçenek D"
-    },
-    "correct": "b",
-    "explanation": "Doğru cevabın açıklaması buraya yazılır."
-  }
-]'></textarea>
-        </div>
-
-        <div style="display:flex; gap:10px; margin-top:20px;">
-          <button class="btn btn-primary" style="width:100%;" onclick="handleSaveCloudSet()">💾 Buluta Kaydet</button>
-        </div>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="admin-manage-screen" class="screen" style="padding: 15px;">
-    <div class="container" style="max-width: 650px;">
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h2 id="admin-manager-title" style="font-size:18px;">İçerik Yönetimi</h2>
-          <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('upload-screen')">⬅️ Yönetici Menü</button>
-        </div>
-        <div id="admin-manager-list" style="max-height: 50vh; overflow-y: auto; background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;"></div>
-      </div>
-      <div style="margin-top: 15px;">
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="quiz-screen" class="screen">
-    <div id="top-bar">
-      <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="showScreen('set-select-screen')">⬅️ Konular</button>
-      <div class="timer-controls">
-        <span id="timer" class="timer-badge">⏱️ 00:00</span>
-        <button class="btn btn-warning" id="timer-toggle-btn" style="padding:6px 8px; font-size:12px;" onclick="toggleTimer()">⏸️</button>
-        <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="finishExam()">🏁 Bitir</button>
-      </div>
-    </div>
-
-    <div id="workspace">
-      <div id="article-panel">
-        <div id="article-number">Metin 1 / 1</div>
-        <h1 id="article-title">Yükleniyor...</h1>
-        <div id="article-text"></div>
-      </div>
-
-      <div id="question-panel">
-        <div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px;">
-            <span id="question-number">Soru 1 / 4</span>
-          </div>
-
-          <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #334155;">
-            <div id="question-title" style="font-weight:600; margin-bottom:12px; font-size:14px; color:#f8fafc;"></div>
-            <div id="options-group"></div>
-            
-            <button class="btn btn-info" id="show-answer-btn" onclick="toggleAnswerVisibility()" style="margin-top:12px; width:100%; padding:10px;">💡 Cevabı Göster</button>
-            <div id="explanation-box" class="explanation-box"></div>
-          </div>
-        </div>
-
-        <div style="margin-top: 15px;">
-          <div style="display:flex; justify-content:space-between; gap:10px;">
-            <button id="prev-btn" class="btn btn-secondary" style="flex:1;" onclick="prevQuestion()">⬅️ Önceki</button>
-            <button id="next-btn" class="btn btn-primary" style="flex:1;" onclick="nextQuestion()">Sonraki ➔</button>
-          </div>
-          <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="report-screen" class="screen" style="padding: 15px;">
-    <div class="container">
-      <div>
-        <h2>🎉 Sınav Tamamlandı!</h2>
-        <div class="stat-box" style="margin-top: 15px;">
-          <div><h3 id="rep-correct" style="color:#10b981; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Doğru</small></div>
-          <div><h3 id="rep-wrong" style="color:#ef4444; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Yanlış</small></div>
-          <div><h3 id="rep-empty" style="color:#f59e0b; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Boş</small></div>
-          <div><h3 id="rep-time" style="font-size:20px; color:#38bdf8;">00:00</h3><small style="font-size:11px; color:#94a3b8;">Süre</small></div>
-        </div>
-        <h3 style="font-size:15px; margin-bottom:8px;">❌ Yanlış Cevaplar ve Analizler</h3>
-        <div id="wrong-answers-list" style="margin-top:5px; max-height:220px; overflow-y:auto; font-size:13px;"></div>
-        <button class="btn btn-primary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menüye Dön</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="history-screen" class="screen" style="padding: 15px;">
-    <div class="container">
-      <div>
-        <h2>📜 Geçmiş Sınavlarım</h2>
-        <div id="history-list" style="margin-top:15px; max-height:55vh; overflow-y:auto;"></div>
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <div id="analytics-screen" class="screen" style="padding: 15px;">
-    <div class="container">
-      <div>
-        <h2>📊 Grafik İlerleme Analizi</h2>
-        <div style="display:flex; gap:10px; margin: 15px 0;">
-          <button class="btn btn-primary" style="flex:1;" onclick="renderAnalytics('weekly')">Son Çözülenler</button>
-          <button class="btn btn-secondary" style="flex:1;" onclick="renderAnalytics('general')">Başarı Oranı</button>
-        </div>
-        
-        <div class="history-card" style="padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 280px;">
-          <canvas id="ydsChart" style="max-height: 260px; width: 100%;"></canvas>
-        </div>
-        
-        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menü</button>
-      </div>
-      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
-    </div>
-  </div>
-
-  <script src="questionsData.js"></script>
-  <script src="analytics.js"></script>
+  <!-- app.js Dosyası -->
   <script src="app.js"></script>
 </body>
 </html>

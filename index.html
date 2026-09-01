@@ -1,375 +1,332 @@
-let allSets = [];
-let currentSetIndex = 0;
-let currentArticleIndex = 0;
-let currentQuestionIndex = 0;
-let userAnswers = {};
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>YDS Fransızca - Çalışma Portalı</title>
+  <!-- EmailJS SDK -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <!-- Chart.js Kütüphanesi -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="text/javascript">
+     (function(){
+        emailjs.init({
+          publicKey: "BURAYA_EMAILJS_PUBLIC_KEY_GELECEK",
+        });
+     })();
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; height: 100vh; overflow: hidden; }
 
-let secondsPassed = 0;
-let timerInterval = null;
-let isTimerRunning = false;
+    .screen { display: none; height: 100vh; width: 100%; overflow-y: auto; flex-direction: column; animation: fadeIn 0.4s ease-in-out; }
+    .screen.active { display: flex; }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const dateInput = document.getElementById("upload-date");
-  if (dateInput) dateInput.valueAsDate = new Date();
-  
-  const savedUser = localStorage.getItem("yds_current_user");
-  if (savedUser) {
-    document.getElementById("welcome-username").innerText = savedUser;
-    showScreen('main-menu');
-  } else {
-    showScreen('login-screen');
-  }
-  
-  initData();
-});
-
-function handleLogin() {
-  const username = document.getElementById("username-input").value.trim();
-  if (!username) {
-    alert("Lütfen geçerli bir isim giriniz!");
-    return;
-  }
-  localStorage.setItem("yds_current_user", username);
-  document.getElementById("welcome-username").innerText = username;
-  showScreen('main-menu');
-}
-
-function handleLogout() {
-  localStorage.removeItem("yds_current_user");
-  document.getElementById("username-input").value = "";
-  showScreen('login-screen');
-}
-
-function showScreen(screenId) {
-  pauseTimer();
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
-
-  if (screenId === 'set-select-screen') {
-    renderSetSelectionList();
-  }
-  if (screenId === 'history-screen') renderHistory();
-  if (screenId === 'analytics-screen') renderAnalytics('weekly');
-}
-
-function openSetSelection() {
-  showScreen('set-select-screen');
-}
-
-// 🔒 Yönetici Şifre Kontrolü (Şifre: 258025)
-function checkAdminAccess() {
-  const password = prompt("Yönetici Paneli Şifresini Girin:");
-  if (password === null) return;
-  
-  if (password === "258025") {
-    showScreen('upload-screen');
-  } else {
-    alert("❌ Hatalı şifre! Bu alana sadece yönetici erişebilir.");
-  }
-}
-
-// 📧 Her 2 Sette Bir aliidemiroglu@icloud.com Adresine Mail Gönderen Fonksiyon
-function checkAndSendMilestoneNotification() {
-  const currentCount = allSets.length;
-  
-  if (currentCount > 0 && currentCount % 2 === 0) {
-    const milestoneKey = `yds_milestone_sent_${currentCount}`;
-    const alreadySent = localStorage.getItem(milestoneKey);
-
-    if (!alreadySent) {
-      emailjs.send("service_snh9thi", "template_2n21pgo", {
-        message: `Tebrikler Gnothi! Portalın tam ${currentCount} soru setine ulaştı.`,
-        to_email: "aliidemiroglu@icloud.com"
-      }).then(() => {
-        localStorage.setItem(milestoneKey, "true");
-        console.log(`${currentCount}. set için hedef maili başarıyla gönderildi!`);
-      }).catch((err) => {
-        console.error("Mail gönderilemedi:", err);
-      });
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-  }
-}
 
-// 🔒 Yönetici Panelinden Soru Kaydetme (Şifre Korumalı, 5 Şıklı, Doğru Şık Seçimli)
-function handleSaveSet() {
-  const topic = document.getElementById("upload-topic").value.trim();
-  const date = document.getElementById("upload-date").value;
-  
-  const articleTitle = document.getElementById("admin-article-title").value.trim();
-  const articleText = document.getElementById("admin-article-text").value.trim();
-  
-  const qText = document.getElementById("admin-q-text").value.trim();
-  const optA = document.getElementById("admin-opt-a").value.trim();
-  const optB = document.getElementById("admin-opt-b").value.trim();
-  const optC = document.getElementById("admin-opt-c").value.trim();
-  const optD = document.getElementById("admin-opt-d").value.trim();
-  const optE = document.getElementById("admin-opt-e").value.trim();
-  const correctOpt = document.getElementById("admin-correct-opt").value;
-  const explanation = document.getElementById("admin-explanation").value.trim();
+    /* 🇫🇷 FRANSIZ HAVA KATMANI VE ARKA PLAN ANİMASYONLARI (Soru Ekranı Hariç) */
+    .screen:not(#quiz-screen) {
+      position: relative;
+      overflow: hidden;
+    }
 
-  if (!topic || !articleTitle || !articleText || !qText || !optA || !optB || !optC || !optD || !optE) {
-    alert("Lütfen Konu Başlığı, Makale ve 5 şıklı soru alanlarını eksiksiz doldurun!");
-    return;
-  }
+    /* Arka planda süzülen ikonik Fransız figürleri ve parıltılar */
+    .screen:not(#quiz-screen)::before {
+      content: "🗼 ⚜️ 🥐 🇫🇷 ☕ 🗼 ⚜️";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      font-size: 80px;
+      color: rgba(255, 255, 255, 0.018);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      align-content: space-around;
+      transform: rotate(-15deg);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatingIcons 35s linear infinite;
+    }
 
-  const newSet = {
-    id: "set_admin_" + Date.now(),
-    date: date || new Date().toISOString().split('T')[0],
-    topic: topic,
-    completed: false,
-    articles: [
-      {
-        title: articleTitle,
-        text: articleText,
-        questions: [
-          {
-            id: "q_1",
-            question: qText,
-            options: [`A) ${optA}`, `B) ${optB}`, `C) ${optC}`, `D) ${optD}`, `E) ${optE}`],
-            answer: correctOpt,
-            explanation: explanation || "Açıklama girilmedi."
-          }
-        ]
-      }
-    ]
-  };
+    @keyframes floatingIcons {
+      0% { transform: rotate(-15deg) translateY(0); }
+      50% { transform: rotate(-15deg) translateY(-30px); }
+      100% { transform: rotate(-15deg) translateY(0); }
+    }
 
-  allSets.unshift(newSet);
-  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
+    /* Şık Paris Rüzgarı / Işık Efekti */
+    .screen:not(#quiz-screen)::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 20% 80%, rgba(129, 140, 248, 0.05) 0%, transparent 40%);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-  checkAndSendMilestoneNotification();
+    /* Ekran içeriklerinin arka plan animasyonunun üstünde görünmesini sağla */
+    .screen:not(#quiz-screen) > * {
+      position: relative;
+      z-index: 1;
+    }
 
-  alert("✅ Admin seti başarıyla kaydedildi!");
-  
-  document.getElementById("upload-topic").value = "";
-  document.getElementById("admin-article-title").value = "";
-  document.getElementById("admin-article-text").value = "";
-  document.getElementById("admin-q-text").value = "";
-  document.getElementById("admin-opt-a").value = "";
-  document.getElementById("admin-opt-b").value = "";
-  document.getElementById("admin-opt-c").value = "";
-  document.getElementById("admin-opt-d").value = "";
-  document.getElementById("admin-opt-e").value = "";
-  document.getElementById("admin-explanation").value = "";
+    /* GİRİŞ EKRANI STİLİ */
+    #login-screen, #main-menu { justify-content: center; align-items: center; text-align: center; padding: 20px; }
+    .login-box { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); padding: 35px; border-radius: 16px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .login-box input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; outline: none; transition: 0.3s; }
+    .login-box input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
 
-  showScreen('set-select-screen');
-}
+    #main-menu h1 { font-size: 28px; margin-bottom: 5px; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .menu-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; margin-bottom: 25px; max-width: 500px; }
+    
+    .menu-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 18px; border-radius: 14px; width: 155px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .menu-card:hover { transform: translateY(-6px) scale(1.03); background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2); }
+    .menu-card h3 { font-size: 15px; color: #e2e8f0; }
 
-function renderSetSelectionList() {
-  const container = document.getElementById("set-list-container");
-  if (allSets.length === 0) {
-    container.innerHTML = "<p>Sistemde henüz kayıtlı soru seti yok.</p>";
-    return;
-  }
+    /* GENEL FORM VE KONTEYNERLAR */
+    .container { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 750px; margin: auto; display: flex; flex-direction: column; min-height: 85vh; justify-content: space-between; }
+    
+    .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-align: center; font-size: 14px; }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: #0ea5e9; color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-danger { background: #ef4444; color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+    .btn-warning { background: #f59e0b; color: #0f172a; }
+    .btn-info { background: #06b6d4; color: white; }
+    .btn-success { background: #10b981; color: white; }
 
-  container.innerHTML = allSets.map((set, index) => `
-    <div class="set-item-card" onclick="startQuizSet(${index})">
-      <div>
-        <strong>📌 ${set.topic}</strong><br>
-        <small style="color:#666;">Tarih: ${set.date}</small>
+    /* TEST EKRANI DÜZENİ */
+    #quiz-screen { flex-direction: column; height: 100vh; background: #0f172a; }
+    #top-bar { background: #1e293b; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    #workspace { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    
+    #article-panel { flex: 0 0 42%; padding: 20px; border-bottom: 2px solid #334155; overflow-y: auto; background-color: #0f172a; }
+    #article-number { font-size: 12px; color: #38bdf8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+    #article-title { font-size: 17px; margin: 6px 0 10px 0; color: #f8fafc; font-weight: 600; }
+    #article-text { line-height: 1.7; font-size: 14px; text-align: justify; color: #cbd5e1; }
+
+    #question-panel { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; background: #1e293b; }
+    
+    .timer-controls { display: flex; align-items: center; gap: 8px; }
+    .timer-badge { background: #0f172a; color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-family: monospace; font-size: 14px; font-weight: bold; border: 1px solid #334155; }
+
+    .option-btn { text-align: left; padding: 12px 16px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 8px; transition: 0.2s; }
+    .option-btn:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); }
+    .option-btn.selected { background-color: #0ea5e9; border-color: #0ea5e9; color: white; font-weight: bold; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3); }
+    
+    .explanation-box { margin-top: 12px; padding: 14px; background: #0f172a; border-left: 4px solid #06b6d4; border-radius: 8px; font-size: 13px; display: none; color: #cbd5e1; }
+    
+    .history-card { border: 1px solid #334155; padding: 14px; border-radius: 10px; margin-bottom: 12px; background: #0f172a; font-size: 14px; }
+    .stat-box { display: flex; justify-content: space-between; background: #0f172a; padding: 14px; border-radius: 10px; margin-bottom: 18px; text-align: center; border: 1px solid #334155; }
+
+    .set-item-card { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+    .set-item-card:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); }
+
+    .app-footer { text-align: center; padding: 12px; font-size: 12px; color: #64748b; font-style: italic; letter-spacing: 0.5px; width: 100%; margin-top: auto; }
+    .app-footer span { font-weight: 600; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+  <!-- 0. GİRİŞ EKRANI -->
+  <div id="login-screen" class="screen active">
+    <div class="login-box">
+      <h2>🇫🇷 YDS Fransızca</h2>
+      <p style="margin-top:8px; font-size:14px; color:#94a3b8;">Kişisel profilinle devam etmek için adını gir</p>
+      <input type="text" id="username-input" placeholder="Adın veya Kullanıcı Adın...">
+      <button class="btn btn-primary" style="width:100%; padding: 12px;" onclick="handleLogin()">🚀 Portala Giriş Yap</button>
+    </div>
+    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+  </div>
+
+  <!-- 1. ANA MENÜ -->
+  <div id="main-menu" class="screen">
+    <div>
+      <h1>🇫🇷 YDS Fransızca Portalı</h1>
+      <p style="color:#94a3b8; margin-top:4px;">Aktif Profil: <strong id="welcome-username" style="color:#38bdf8;"></strong></p>
+      
+      <div class="menu-cards" style="margin: 25px auto;">
+        <div class="menu-card" onclick="openSetSelection()"><h3>📝 Soru Çöz</h3></div>
+        <div class="menu-card" onclick="checkAdminAccess()"><h3>🔒 Yönetici Paneli</h3></div>
+        <div class="menu-card" onclick="showScreen('history-screen')"><h3>📜 Geçmişim</h3></div>
+        <div class="menu-card" onclick="showScreen('analytics-screen')"><h3>📊 Grafik Analiz</h3></div>
       </div>
-      <div>
-        ${set.completed ? '<span style="color:green; font-weight:bold; font-size:13px;">✔ Çözüldü</span>' : '<span style="color:#007bff; font-weight:bold; font-size:13px;">Başla ➔</span>'}
+      
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-secondary" onclick="handleLogout()" style="font-size:12px; padding:8px 14px;">👤 Profil Değiştir</button>
+        <button class="btn btn-danger" onclick="confirmResetUserData()" style="font-size:12px; padding:8px 14px;">🗑️ Verilerimi Sıfırla</button>
       </div>
     </div>
-  `).join('');
-}
+    <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+  </div>
 
-function startQuizSet(index) {
-  currentSetIndex = index;
-  currentArticleIndex = 0;
-  currentQuestionIndex = 0;
-  userAnswers = {};
-  secondsPassed = 0;
-  
-  showScreen('quiz-screen');
-  loadState();
-  startTimer();
-}
+  <!-- 1.1 KONU SEÇİM EKRANI -->
+  <div id="set-select-screen" class="screen" style="padding: 15px;">
+    <div class="container">
+      <div>
+        <h2>Çözmek İstediğiniz Konuyu Seçin</h2>
+        <div id="set-list-container" style="margin-top: 15px; max-height: 52vh; overflow-y: auto;"></div>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
 
-function initData() {
-  const localData = localStorage.getItem("yds_question_sets");
-  if (localData) {
-    allSets = JSON.parse(localData);
-  } else if (window.ydsFransizcaDeneme) {
-    allSets = [{
-      id: "set_default",
-      date: new Date().toISOString().split('T')[0],
-      topic: "Genel Fransızca",
-      completed: false,
-      articles: window.ydsFransizcaDeneme
-    }];
-    localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
-  }
-}
+  <!-- 3. YÖNETİCİ JSON YÜKLEME PANELİ -->
+  <div id="upload-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 650px;">
+      <div>
+        <h2>🔑 Yönetici JSON Soru Yükleme Paneli</h2>
+        <p style="font-size:12px; color:#38bdf8; margin-bottom:12px;">Yapay zekadan aldığın tam JSON kodunu buraya yapıştırarak seti anında ekle.</p>
+        
+        <div style="margin: 8px 0;">
+  <label style="font-size:13px; color:#94a3b8;">Yönetici Şifresi:</label>
+  <input type="password" id="admin-password" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="••••••">
+</div>
 
-function loadState() {
-  const activeSet = allSets[currentSetIndex];
-  if (!activeSet || !activeSet.articles) return;
-
-  const currentArticle = activeSet.articles[currentArticleIndex];
-  const currentQuestion = currentArticle.questions[currentQuestionIndex];
-  const currentQId = currentQuestion.id || `q_${currentQuestionIndex}`;
-
-  document.getElementById("article-number").innerText = `Metin ${currentArticleIndex + 1} / ${activeSet.articles.length} | ${activeSet.topic}`;
-  document.getElementById("article-title").innerText = currentArticle.title;
-  document.getElementById("article-text").innerText = currentArticle.text;
-
-  document.getElementById("question-number").innerText = `Soru ${currentQuestionIndex + 1} / ${currentArticle.questions.length}`;
-  document.getElementById("question-title").innerText = currentQuestion.question;
-
-  const optionsGroup = document.getElementById("options-group");
-  optionsGroup.innerHTML = "";
-  const savedAnswer = userAnswers[currentQId];
-
-  currentQuestion.options.forEach((opt) => {
-    const letter = opt.charAt(0);
-    const btn = document.createElement("button");
-    btn.className = "option-btn";
-    if (savedAnswer === letter) btn.classList.add("selected");
-    btn.innerText = opt;
-    btn.onclick = () => selectOption(currentQId, letter);
-    optionsGroup.appendChild(btn);
-  });
-
-  document.getElementById("explanation-box").style.display = "none";
-  document.getElementById("explanation-box").innerHTML = `💡 <strong>Doğru Cevap: ${currentQuestion.answer}</strong><br>${currentQuestion.explanation}`;
-  document.getElementById("show-answer-btn").innerText = "💡 Cevabı Göster";
-}
-
-function selectOption(qId, letter) {
-  userAnswers[qId] = letter;
-  loadState();
-}
-
-function toggleAnswerVisibility() {
-  const expBox = document.getElementById("explanation-box");
-  const btn = document.getElementById("show-answer-btn");
-  
-  if (expBox.style.display === "none") {
-    expBox.style.display = "block";
-    btn.innerText = "🙈 Cevabı Gizle";
-  } else {
-    expBox.style.display = "none";
-    btn.innerText = "💡 Cevabı Göster";
-  }
-}
-
-function startTimer() {
-  if (!isTimerRunning) {
-    isTimerRunning = true;
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      secondsPassed++;
-      const m = Math.floor(secondsPassed / 60);
-      const s = secondsPassed % 60;
-      const timerEl = document.getElementById("timer");
-      if (timerEl) {
-        timerEl.innerText = `⏱️ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      }
-    }, 1000);
-  }
-}
-
-function pauseTimer() {
-  isTimerRunning = false;
-  clearInterval(timerInterval);
-}
-
-function toggleTimer() {
-  const btn = document.getElementById("timer-toggle-btn");
-  if (isTimerRunning) {
-    pauseTimer();
-    btn.innerText = "▶️";
-    btn.className = "btn btn-success";
-  } else {
-    startTimer();
-    btn.innerText = "⏸️";
-    btn.className = "btn btn-warning";
-  }
-}
-
-function finishExam() {
-  pauseTimer();
-  const activeSet = allSets[currentSetIndex];
-  
-  let correct = 0, wrong = 0, empty = 0;
-  const wrongListHTML = [];
-
-  activeSet.articles.forEach(article => {
-    article.questions.forEach((q, qIndex) => {
-      const qId = q.id || `q_${qIndex}`;
-      const ans = userAnswers[qId];
-
-      if (!ans) {
-        empty++;
-      } else if (ans === q.answer) {
-        correct++;
-      } else {
-        wrong++;
-        wrongListHTML.push(`
-          <div style="border-bottom: 1px solid #ddd; padding: 8px 0;">
-            <strong>Soru:</strong> ${q.question}<br>
-            <span style="color:red;">Senin: ${ans}</span> | <span style="color:green;">Doğru: ${q.answer}</span><br>
-            <small>💡 ${q.explanation}</small>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin: 8px 0;">
+          <div>
+            <label style="font-size:13px; color:#94a3b8;">Konu / Deneme Başlığı:</label>
+            <input type="text" id="upload-topic" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: YDS Fransızca Deneme 1">
           </div>
-        `);
-      }
-    });
-  });
+          <div>
+            <label style="font-size:13px; color:#94a3b8;">Tarih:</label>
+            <input type="date" id="upload-date" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;">
+          </div>
+        </div>
 
-  activeSet.completed = true;
-  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
+        <div style="margin: 8px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Tam JSON Kodu (Makale + Metin + Sorular):</label>
+          <textarea id="admin-json-input" style="width:100%; height:240px; padding:10px; background:#0f172a; border:1px solid #334155; color:#38bdf8; font-family:monospace; font-size:12px; border-radius:6px;" placeholder='{
+  "articleTitle": "Makale Başlığı",
+  "articleText": "Fransızca paragraf metni buraya...",
+  "questions": [
+    {
+      "id": 1,
+      "question": "Soru metni...",
+      "options": { "a": "...", "b": "...", "c": "...", "d": "...", "e": "..." },
+      "correct": "A",
+      "explanation": "Çözüm açıklaması..."
+    }
+  ]
+}'></textarea>
+        </div>
 
-  const m = Math.floor(secondsPassed / 60);
-  const s = secondsPassed % 60;
-  const timeFormatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        <div style="display:flex; gap:10px; margin-top:15px;">
+          <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="flex:1;">🏠 Menü</button>
+          <button class="btn btn-primary" onclick="handleSaveJSONSet()" style="flex:2;">💾 JSON Setini Kaydet</button>
+        </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
 
-  saveExamSession({
-    timestamp: new Date().getTime(),
-    date: activeSet.date,
-    topic: activeSet.topic,
-    correct, wrong, empty,
-    seconds: secondsPassed,
-    timeSpent: timeFormatted
-  });
+  <!-- 4. TEST ÇÖZME EKRANI -->
+  <div id="quiz-screen" class="screen">
+    <div id="top-bar">
+      <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="showScreen('set-select-screen')">⬅️ Konular</button>
+      <div class="timer-controls">
+        <span id="timer" class="timer-badge">⏱️ 00:00</span>
+        <button class="btn btn-warning" id="timer-toggle-btn" style="padding:6px 8px; font-size:12px;" onclick="toggleTimer()">⏸️</button>
+        <button class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="finishExam()">🏁 Bitir</button>
+      </div>
+    </div>
 
-  document.getElementById("rep-correct").innerText = correct;
-  document.getElementById("rep-wrong").innerText = wrong;
-  document.getElementById("rep-empty").innerText = empty;
-  document.getElementById("rep-time").innerText = timeFormatted;
-  document.getElementById("wrong-answers-list").innerHTML = wrongListHTML.length > 0 ? wrongListHTML.join('') : "<p>Harika! Hiç yanlışınız yok.</p>";
+    <div id="workspace">
+      <div id="article-panel">
+        <div id="article-number">Metin 1 / 1</div>
+        <h1 id="article-title">Yükleniyor...</h1>
+        <div id="article-text"></div>
+      </div>
 
-  secondsPassed = 0;
-  userAnswers = {};
-  
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('report-screen').classList.add('active');
-}
+      <div id="question-panel">
+        <div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px;">
+            <span id="question-number">Soru 1 / 4</span>
+          </div>
 
-function nextQuestion() {
-  const activeSet = allSets[currentSetIndex];
-  const currentArticle = activeSet.articles[currentArticleIndex];
+          <div style="background:#0f172a; padding:16px; border-radius:10px; border:1px solid #334155;">
+            <div id="question-title" style="font-weight:600; margin-bottom:12px; font-size:14px; color:#f8fafc;"></div>
+            <div id="options-group"></div>
+            
+            <button class="btn btn-info" id="show-answer-btn" onclick="toggleAnswerVisibility()" style="margin-top:12px; width:100%; padding:10px;">💡 Cevabı Göster</button>
+            <div id="explanation-box" class="explanation-box"></div>
+          </div>
+        </div>
 
-  if (currentQuestionIndex < currentArticle.questions.length - 1) {
-    currentQuestionIndex++;
-  } else if (currentArticleIndex < activeSet.articles.length - 1) {
-    currentArticleIndex++;
-    currentQuestionIndex = 0;
-  } else {
-    finishExam();
-    return;
-  }
-  loadState();
-}
+        <div style="margin-top: 15px;">
+          <div style="display:flex; justify-content:space-between; gap:10px;">
+            <button id="prev-btn" class="btn btn-secondary" style="flex:1;" onclick="prevQuestion()">⬅️ Önceki</button>
+            <button id="next-btn" class="btn btn-primary" style="flex:1;" onclick="nextQuestion()">Sonraki ➔</button>
+          </div>
+          <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-function prevQuestion() {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-  } else if (currentArticleIndex > 0) {
-    currentArticleIndex--;
-    const prevArticle = allSets[currentSetIndex].articles[currentArticleIndex];
-    currentQuestionIndex = prevArticle.questions.length - 1;
-  }
-  loadState();
-}
+  <!-- 5. SINAV SONU RAPORU -->
+  <div id="report-screen" class="screen" style="padding: 15px;">
+    <div class="container">
+      <div>
+        <h2>🎉 Sınav Tamamlandı!</h2>
+        <div class="stat-box" style="margin-top: 15px;">
+          <div><h3 id="rep-correct" style="color:#10b981; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Doğru</small></div>
+          <div><h3 id="rep-wrong" style="color:#ef4444; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Yanlış</small></div>
+          <div><h3 id="rep-empty" style="color:#f59e0b; font-size:20px;">0</h3><small style="font-size:11px; color:#94a3b8;">Boş</small></div>
+          <div><h3 id="rep-time" style="font-size:20px; color:#38bdf8;">00:00</h3><small style="font-size:11px; color:#94a3b8;">Süre</small></div>
+        </div>
+        <h3 style="font-size:15px; margin-bottom:8px;">❌ Yanlış Cevaplar ve Analizler</h3>
+        <div id="wrong-answers-list" style="margin-top:5px; max-height:220px; overflow-y:auto; font-size:13px;"></div>
+        <button class="btn btn-primary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menüye Dön</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 6. GEÇMİŞ OTURUMLAR -->
+  <div id="history-screen" class="screen" style="padding: 15px;">
+    <div class="container">
+      <div>
+        <h2>📜 Geçmiş Sınavlarım</h2>
+        <div id="history-list" style="margin-top:15px; max-height:55vh; overflow-y:auto;"></div>
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 7. İLERLEME ANALİZİ -->
+  <div id="analytics-screen" class="screen" style="padding: 15px;">
+    <div class="container">
+      <div>
+        <h2>📊 Grafik İlerleme Analizi</h2>
+        <div style="display:flex; gap:10px; margin: 15px 0;">
+          <button class="btn btn-primary" style="flex:1;" onclick="renderAnalytics('weekly')">Son Çözülenler</button>
+          <button class="btn btn-secondary" style="flex:1;" onclick="renderAnalytics('general')">Başarı Oranı</button>
+        </div>
+        
+        <div class="history-card" style="padding: 15px; display: flex; justify-content: center; align-items: center; min-height: 280px;">
+          <canvas id="ydsChart" style="max-height: 260px; width: 100%;"></canvas>
+        </div>
+        
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="margin-top:15px; width:100%;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <script src="questionsData.js"></script>
+  <script src="analytics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

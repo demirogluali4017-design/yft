@@ -1,4 +1,4 @@
-// --- UYGULAMA ANA MANTIĞI & JSON KAYIT ---
+// --- UYGULAMA MANTIĞI & ORTAK SORU HAVUZU ENTEGRASYONU ---
 
 let currentScreen = 'login-screen';
 let currentUser = localStorage.getItem("yds_current_user") || "";
@@ -6,17 +6,21 @@ let timerInterval = null;
 let secondsElapsed = 0;
 let isTimerPaused = false;
 
-// Sınav Durum Değişkenleri
 let activeQuestions = [];
 let currentQuestionIndex = 0;
 let userAnswers = {};
 let currentExamTopic = "";
 let currentExamDate = "";
 
+let studyVocabList = [];
+let currentVocabIndex = 0;
+let isCardFlipped = false;
+
 window.onload = function() {
   if (currentUser) {
     document.getElementById("welcome-username").innerText = currentUser;
     showScreen('main-menu');
+    checkDailyReminderTrigger();
   } else {
     showScreen('login-screen');
   }
@@ -31,6 +35,10 @@ function showScreen(screenId) {
     renderHistory();
   } else if (screenId === 'analytics-screen') {
     renderAnalytics('weekly');
+  } else if (screenId === 'vocab-menu-screen') {
+    renderVocabList();
+  } else if (screenId === 'reminder-screen') {
+    loadReminderSettings();
   } else if (screenId === 'quiz-screen') {
     startTimer();
   } else {
@@ -48,6 +56,7 @@ function handleLogin() {
   localStorage.setItem("yds_current_user", currentUser);
   document.getElementById("welcome-username").innerText = currentUser;
   showScreen('main-menu');
+  checkDailyReminderTrigger();
 }
 
 function handleLogout() {
@@ -58,8 +67,10 @@ function handleLogout() {
 }
 
 function confirmResetUserData() {
-  if (confirm("Tüm kişisel sınav geçmişiniz ve kayıtlarınız silinecek. Emin misiniz?")) {
+  if (confirm("Tüm kişisel sınav geçmişiniz ve kayıtlı kelimeleriniz silinecek. Emin misiniz?")) {
     localStorage.removeItem(`yds_history_${currentUser}`);
+    localStorage.removeItem(`yds_vocab_${currentUser}`);
+    localStorage.removeItem(`yds_reminder_${currentUser}`);
     alert("✅ Verileriniz sıfırlandı.");
     showScreen('main-menu');
   }
@@ -74,154 +85,374 @@ function checkAdminAccess() {
   }
 }
 
-// Çoklu Veya Tekli JSON Kodunu Okuyup Kaydeden Fonksiyon
+// --- E-POSTA HATIRLATICI FONKSİYONLARI ---
+
+function openReminderScreen() {
+  showScreen('reminder-screen');
+}
+
+function loadReminderSettings() {
+  const data = JSON.parse(localStorage.getItem(`yds_reminder_${currentUser}`)) || { email: "", active: false };
+  document.getElementById("reminder-email").value = data.email || "";
+  document.getElementById("reminder-active").checked = data.active || false;
+}
+
+function saveReminderSettings() {
+  const email = document.getElementById("reminder-email").value.trim();
+  const active = document.getElementById("reminder-active").checked;
+
+  if (active && !email) {
+    alert("⚠️ Hatırlatıcı aktif edebilmek için geçerli bir e-posta adresi girmelisin!");
+    return;
+  }
+
+  const reminderData = { email, active, lastSent: "" };
+  localStorage.setItem(`yds_reminder_${currentUser}`, JSON.stringify(reminderData));
+  alert("✅ Hatırlatıcı ayarların kaydedildi!");
+  showScreen('main-menu');
+}
+
+function sendTestReminderEmail() {
+  const email = document.getElementById("reminder-email").value.trim();
+  if (!email) {
+    alert("⚠️ Lütfen önce e-posta adresini gir!");
+    return;
+  }
+
+  const templateParams = {
+    to_email: email,
+    to_name: currentUser,
+    message: "Bonjour! YDS Fransızca hedeflerine ulaşmak için bugün en az 1 soru seti çözmeyi unutma. Başarılar!"
+  };
+
+  emailjs.send("service_snh9thi", "template_2n21pgo", templateParams)
+    .then(function(response) {
+      alert("✅ Hatırlatıcı e-postası başarıyla gönderildi!");
+    }, function(error) {
+      alert("❌ E-posta gönderilemedi. Lütfen index.html içindeki EmailJS Public Key'ini kontrol et.\nHata: " + JSON.stringify(error));
+    });
+}
+
+function checkDailyReminderTrigger() {
+  const reminderData = JSON.parse(localStorage.getItem(`yds_reminder_${currentUser}`));
+  if (!reminderData || !reminderData.active || !reminderData.email) return;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (reminderData.lastSent !== todayStr) {
+    const templateParams = {
+      to_email: reminderData.email,
+      to_name: currentUser,
+      message: "Günlük YDS Fransızca çalışma vaktin geldi! Bugün portala girip pratik yapmayı ihmal etme."
+    };
+
+    emailjs.send("service_snh9thi", "template_2n21pgo", templateParams)
+      .then(function(response) {
+        reminderData.lastSent = todayStr;
+        localStorage.setItem(`yds_reminder_${currentUser}`, JSON.stringify(reminderData));
+      }, function(error) {
+        console.warn("Otomatik günlük hatırlatıcı gönderilemedi:", error);
+      });
+  }
+}
+
+// --- KELİME DEFTERİ & YÖNETİCİ MODÜLLERİ ---
+
+function handleSaveVocab() {
+  const word = document.getElementById("vocab-word").value.trim();
+  const meaning = document.getElementById("vocab-meaning").value.trim();
+  const synonyms = document.getElementById("vocab-synonyms").value.trim();
+  const example = document.getElementById("vocab-example").value.trim();
+
+  if (!word || !meaning) {
+    alert("⚠️ Lütfen Fransızca kelimeyi ve Türkçe anlamını gir!");
+    return;
+  }
+
+  const vocabKey = `yds_vocab_${currentUser}`;
+  let vocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+
+  const newVocab = {
+    id: "vocab_" + Date.now(),
+    word: word,
+    meaning: meaning,
+    synonyms: synonyms || "-",
+    example: example || "-"
+  };
+
+  vocabList.push(newVocab);
+  localStorage.setItem(vocabKey, JSON.stringify(vocabList));
+
+  alert("✅ Kelime defterine başarıyla eklendi!");
+  document.getElementById("vocab-word").value = "";
+  document.getElementById("vocab-meaning").value = "";
+  document.getElementById("vocab-synonyms").value = "";
+  document.getElementById("vocab-example").value = "";
+  showScreen('vocab-menu-screen');
+}
+
+function renderVocabList() {
+  const vocabKey = `yds_vocab_${currentUser}`;
+  let vocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+  const container = document.getElementById("vocab-list-container");
+
+  if (vocabList.length === 0) {
+    container.innerHTML = "<p style='text-align:center; color:#94a3b8; font-size:13px; padding:15px;'>Henüz kelime eklemedin.</p>";
+    return;
+  }
+
+  let html = "";
+  vocabList.forEach((v) => {
+    html += `
+      <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <strong style="color:#38bdf8; font-size:14px;">${v.word}</strong> - <span style="color:#e2e8f0; font-size:13px;">${v.meaning}</span>
+        </div>
+        <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deleteVocab('${v.id}')">Sil</button>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+function deleteVocab(vocabId) {
+  if (!confirm("Bu kelimeyi silmek istediğine emin misin?")) return;
+  const vocabKey = `yds_vocab_${currentUser}`;
+  let vocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+  vocabList = vocabList.filter(v => v.id !== vocabId);
+  localStorage.setItem(vocabKey, JSON.stringify(vocabList));
+  renderVocabList();
+}
+
+function startFlashcards() {
+  const vocabKey = `yds_vocab_${currentUser}`;
+  studyVocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+  if (studyVocabList.length === 0) {
+    alert("⚠️ Tekrar yapabilmek için önce kelime eklemelisin!");
+    return;
+  }
+  studyVocabList.sort(() => Math.random() - 0.5);
+  currentVocabIndex = 0;
+  showScreen('vocab-study-screen');
+  loadFlashcard();
+}
+
+function loadFlashcard() {
+  if (studyVocabList.length === 0) return;
+  const item = studyVocabList[currentVocabIndex];
+  document.getElementById("vocab-counter").innerText = `Kart ${currentVocabIndex + 1} / ${studyVocabList.length}`;
+  document.getElementById("fc-word").innerText = item.word;
+  document.getElementById("fc-meaning").innerText = item.meaning;
+  document.getElementById("fc-synonyms").innerText = item.synonyms;
+  document.getElementById("fc-example").innerText = `"${item.example}"`;
+  isCardFlipped = false;
+  document.getElementById("flashcard-front").style.display = "block";
+  document.getElementById("flashcard-back").style.display = "none";
+}
+
+function flipFlashcard() {
+  isCardFlipped = !isCardFlipped;
+  document.getElementById("flashcard-front").style.display = isCardFlipped ? "none" : "block";
+  document.getElementById("flashcard-back").style.display = isCardFlipped ? "block" : "none";
+}
+
+function nextFlashcard(status) {
+  if (status === 'again') studyVocabList.push(studyVocabList[currentVocabIndex]);
+  currentVocabIndex++;
+  if (currentVocabIndex < studyVocabList.length) {
+    loadFlashcard();
+  } else {
+    alert("🎉 Tebrikler! Tüm kelime kartlarını tamamladın.");
+    showScreen('vocab-menu-screen');
+  }
+}
+
+function openAdminManager(type) {
+  const listContainer = document.getElementById("admin-manager-list");
+  const titleEl = document.getElementById("admin-manager-title");
+  showScreen('admin-manage-screen');
+
+  if (type === 'sets') {
+    titleEl.innerText = "📥 Yüklenen Soru Setlerini Yönet / Sil";
+    const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
+    if (customSets.length === 0) {
+      listContainer.innerHTML = "<p style='text-align:center; color:#94a3b8; font-size:13px; padding:15px;'>Kayıtlı özel soru seti bulunmuyor.</p>";
+      return;
+    }
+    let html = "";
+    customSets.forEach((set) => {
+      const setDisplayName = set.topic || set.articleTitle || "İsimsiz Set";
+      html += `
+        <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong style="color:#38bdf8; font-size:14px;">${setDisplayName}</strong>
+          </div>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteCustomSet('${set.id}')">Sil</button>
+        </div>
+      `;
+    });
+    listContainer.innerHTML = html;
+  } else if (type === 'vocab') {
+    titleEl.innerText = "📚 Kayıtlı Kelimeleri Yönet / Sil";
+    const vocabKey = `yds_vocab_${currentUser}`;
+    let vocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+    if (vocabList.length === 0) {
+      listContainer.innerHTML = "<p style='text-align:center; color:#94a3b8; font-size:13px; padding:15px;'>Kayıtlı kelime bulunmuyor.</p>";
+      return;
+    }
+    let html = "";
+    vocabList.forEach((v) => {
+      html += `
+        <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div><strong style="color:#38bdf8; font-size:14px;">${v.word}</strong></div>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteAdminVocab('${v.id}')">Sil</button>
+        </div>
+      `;
+    });
+    listContainer.innerHTML = html;
+  }
+}
+
+function deleteCustomSet(setId) {
+  if (!confirm("Bu soru setini silmek istediğine emin misin?")) return;
+  let customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
+  customSets = customSets.filter(s => s.id !== setId);
+  localStorage.setItem("yds_custom_sets", JSON.stringify(customSets));
+  openAdminManager('sets');
+}
+
+function deleteAdminVocab(vocabId) {
+  if (!confirm("Bu kelimeyi silmek istediğine emin misin?")) return;
+  const vocabKey = `yds_vocab_${currentUser}`;
+  let vocabList = JSON.parse(localStorage.getItem(vocabKey)) || [];
+  vocabList = vocabList.filter(v => v.id !== vocabId);
+  localStorage.setItem(vocabKey, JSON.stringify(vocabList));
+  openAdminManager('vocab');
+}
+
 function handleSaveJSONSet() {
   const password = document.getElementById("admin-password").value.trim();
   if (password !== "258025") {
-    alert("❌ Hatalı yönetici şifresi!");
+    alert("❌ Hatalı şifre!");
     return;
   }
-
   const jsonRaw = document.getElementById("admin-json-input").value.trim();
-  if (!jsonRaw) {
-    alert("⚠️ Lütfen JSON kodunu yapıştırın!");
-    return;
-  }
-
   let parsedData;
   try {
     parsedData = JSON.parse(jsonRaw);
   } catch (error) {
-    alert("❌ Geçersiz JSON formatı! Parantez veya tırnak işaretlerini kontrol et.\nHata: " + error.message);
+    alert("❌ Geçersiz JSON formatı!");
     return;
   }
-
-  let setsArray = [];
-  if (Array.isArray(parsedData)) {
-    setsArray = parsedData;
-  } else if (typeof parsedData === 'object' && parsedData !== null) {
-    setsArray = [parsedData];
-  } else {
-    alert("❌ Geçersiz JSON yapısı!");
-    return;
-  }
-
+  let setsArray = Array.isArray(parsedData) ? parsedData : [parsedData];
   let customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  let addedCount = 0;
-
+  
   setsArray.forEach((item, index) => {
-    if (!item.articleText || !item.questions || !Array.isArray(item.questions)) {
-      console.warn(`Set ${index + 1} atlandı çünkü 'articleText' veya 'questions' eksik.`);
-      return;
+    if (item && (item.articleText || item.questions)) {
+      customSets.push({
+        id: "set_" + Date.now() + "_" + index,
+        topic: (item.topic && item.topic !== "undefined") ? item.topic : ((item.articleTitle && item.articleTitle !== "undefined") ? item.articleTitle : `Set ${customSets.length + 1}`),
+        date: item.date || new Date().toISOString().split('T')[0],
+        articleTitle: (item.articleTitle && item.articleTitle !== "undefined") ? item.articleTitle : "Paragraf",
+        articleText: item.articleText || "",
+        questions: item.questions || []
+      });
     }
-
-    const newArticleSet = {
-      id: "set_" + Date.now() + "_" + index,
-      topic: item.topic || item.articleTitle || `YDS Fransızca Set ${customSets.length + addedCount + 1}`,
-      date: item.date || new Date().toISOString().split('T')[0],
-      articleTitle: item.articleTitle || "YDS Paragraf Soruları",
-      articleText: item.articleText,
-      questions: item.questions
-    };
-
-    customSets.push(newArticleSet);
-    addedCount++;
   });
 
-  if (addedCount === 0) {
-    alert("⚠️ Hiçbir geçerli soru seti eklenemedi! JSON yapısını kontrol edin.");
-    return;
-  }
-
   localStorage.setItem("yds_custom_sets", JSON.stringify(customSets));
-
-  alert(`✅ Başarıyla ${addedCount} adet yeni makale/soru seti sisteme eklendi!`);
-  
-  document.getElementById("admin-json-input").value = "";
-  document.getElementById("admin-password").value = "";
-  
-  showScreen('main-menu');
+  alert("✅ Soru setleri eklendi ve tüm kullanıcılar için ortak hale getirildi!");
+  showScreen('upload-screen');
 }
 
 function openSetSelection() {
   const container = document.getElementById("set-list-container");
-  let allSets = [];
+  let rawSets = [];
   
-  // 1. questionsData.js dosyasındaki tüm setleri güvenli şekilde topla (İster değişken ister dizi olsun)
-  if (typeof defaultQuestionSets !== 'undefined' && Array.isArray(defaultQuestionSets)) {
-    allSets = allSets.concat(defaultQuestionSets);
-  } else {
-    // Eğer questionsData içinde başka bir değişken adı veya doğrudan setler tanımlandıysa onları da yakala
-    for (let key in window) {
-      if (key.includes("Set") || key.includes("Question") || key.includes("yds")) {
-        if (Array.isArray(window[key]) && window[key] !== allSets && window[key].length > 0 && window[key][0].articleText) {
-          allSets = allSets.concat(window[key]);
-        }
+  // 1. questionsData.js dosyasından gelen statik setler
+  for (let key in window) {
+    try {
+      const val = window[key];
+      if (Array.isArray(val)) {
+        val.forEach((item, idx) => {
+          if (item && (item.questions || item.articleText)) {
+            if (!item.id) item.id = `auto_${key}_${idx}`;
+            if (!rawSets.some(s => s.id === item.id)) rawSets.push(item);
+          }
+        });
       }
-    }
+    } catch (e) {}
   }
-  
-  // 2. LocalStorage'dan özel yüklenen setleri ekle
+
+  // 2. Yönetici panelinden eklenen ortak setler
   const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  allSets = allSets.concat(customSets);
-  
+  rawSets = rawSets.concat(customSets);
+
+  // 3. 'undefined' veya boş olan setleri filtreleyerek tamamen temizle
+  let allSets = rawSets.filter(set => {
+    if (!set) return false;
+    const titleVal = set.topic || set.articleTitle;
+    if (!titleVal || titleVal === "undefined" || titleVal.trim() === "") return false;
+    return true;
+  });
+
   if (allSets.length === 0) {
-    container.innerHTML = "<div style='text-align:center; padding:20px; color:#94a3b8;'>Henüz sisteme yüklenmiş bir soru seti bulunmuyor. Yönetici panelinden JSON ile ekleyebilirsiniz.</div>";
+    container.innerHTML = "<div style='text-align:center; padding:20px; color:#94a3b8;'>Soru seti bulunmuyor.</div>";
     showScreen('set-select-screen');
     return;
   }
-  
-  // 🔄 Tarihe göre sıralama (En yeni tarih en üstte görünür)
-  allSets.sort((a, b) => {
-    const dateA = new Date(a.date || '2026-01-01');
-    const dateB = new Date(b.date || '2026-01-01');
-    return dateB - dateA;
-  });
-  
+
   let html = "";
   allSets.forEach((set) => {
+    const displayName = set.topic || set.articleTitle;
     html += `
       <div class="set-item-card" onclick="startExamSet('${set.id}')">
         <div>
-          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${set.topic || set.articleTitle || 'İsimsiz Set'}</h3>
-          <p style="font-size:12px; color:#94a3b8;">${set.articleTitle || 'Paragraf Soruları'} (${set.questions.length} Soru) • <span style="color:#10b981;">${set.date || ''}</span></p>
+          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${displayName}</h3>
+          <p style="font-size:12px; color:#94a3b8;">${set.questions ? set.questions.length : 0} Soru</p>
         </div>
         <button class="btn btn-primary" style="font-size:12px; padding:6px 12px;">Çöz ➔</button>
       </div>
     `;
   });
-  
   container.innerHTML = html;
   showScreen('set-select-screen');
 }
 
 function startExamSet(setId) {
   let allSets = [];
-  if (typeof defaultQuestionSets !== 'undefined' && Array.isArray(defaultQuestionSets)) {
-    allSets = allSets.concat(defaultQuestionSets);
+  for (let key in window) {
+    try {
+      const val = window[key];
+      if (Array.isArray(val)) {
+        val.forEach((item, idx) => {
+          if (item && (item.questions || item.articleText)) {
+            if (!item.id) item.id = `auto_${key}_${idx}`;
+            if (!allSets.some(s => s.id === item.id)) allSets.push(item);
+          }
+        });
+      }
+    } catch (e) {}
   }
-  const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  allSets = allSets.concat(customSets);
-  
+  allSets = allSets.concat(JSON.parse(localStorage.getItem("yds_custom_sets")) || []);
   const selectedSet = allSets.find(s => s.id === setId);
+
   if (!selectedSet) {
-    alert("Soru seti bulunamadı!");
+    alert("⚠️ Seçilen soru seti bulunamadı!");
     return;
   }
-  
-  currentExamTopic = selectedSet.topic || selectedSet.articleTitle || "Deneme";
+
+  currentExamTopic = (selectedSet.topic && selectedSet.topic !== "undefined") ? selectedSet.topic : "Deneme";
   currentExamDate = selectedSet.date || new Date().toISOString().split('T')[0];
-  activeQuestions = selectedSet.questions;
+  activeQuestions = selectedSet.questions || [];
   currentQuestionIndex = 0;
   userAnswers = {};
-  
-  document.getElementById("article-title").innerText = selectedSet.articleTitle || "Metin";
+
+  document.getElementById("article-title").innerText = (selectedSet.articleTitle && selectedSet.articleTitle !== "undefined") ? selectedSet.articleTitle : "Metin";
   document.getElementById("article-text").innerText = selectedSet.articleText || "";
   document.getElementById("article-number").innerText = currentExamTopic;
-  
+
   secondsElapsed = 0;
   isTimerPaused = false;
-  
   showScreen('quiz-screen');
   loadQuestion();
 }
@@ -229,23 +460,17 @@ function startExamSet(setId) {
 function loadQuestion() {
   if (activeQuestions.length === 0) return;
   const q = activeQuestions[currentQuestionIndex];
-  
   document.getElementById("question-number").innerText = `Soru ${currentQuestionIndex + 1} / ${activeQuestions.length}`;
   document.getElementById("question-title").innerText = q.question;
   
   let optHtml = "";
-  const optionsMap = q.options;
-  for (const [key, val] of Object.entries(optionsMap)) {
+  for (const [key, val] of Object.entries(q.options)) {
     const upperKey = key.toUpperCase();
     const isSelected = userAnswers[currentQuestionIndex] === upperKey ? "selected" : "";
     optHtml += `<button class="option-btn ${isSelected}" onclick="selectOption('${upperKey}')"><strong>${upperKey})</strong> ${val}</button>`;
   }
-  
   document.getElementById("options-group").innerHTML = optHtml;
-  
-  const expBox = document.getElementById("explanation-box");
-  expBox.style.display = "none";
-  expBox.innerText = q.explanation || "Açıklama bulunmuyor.";
+  document.getElementById("explanation-box").style.display = "none";
 }
 
 function selectOption(optKey) {
@@ -255,12 +480,8 @@ function selectOption(optKey) {
 
 function toggleAnswerVisibility() {
   const expBox = document.getElementById("explanation-box");
-  if (expBox.style.display === "none") {
-    expBox.style.display = "block";
-    expBox.innerText = "💡 Açıklama: " + activeQuestions[currentQuestionIndex].explanation;
-  } else {
-    expBox.style.display = "none";
-  }
+  expBox.style.display = expBox.style.display === "none" ? "block" : "none";
+  expBox.innerText = "💡 Açıklama: " + activeQuestions[currentQuestionIndex].explanation;
 }
 
 function nextQuestion() {
@@ -282,7 +503,9 @@ function startTimer() {
   timerInterval = setInterval(() => {
     if (!isTimerPaused) {
       secondsElapsed++;
-      updateTimerDisplay();
+      const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+      const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+      document.getElementById("timer").innerText = `⏱️ ${mins}:${secs}`;
     }
   }, 1000);
 }
@@ -293,69 +516,47 @@ function stopTimer() {
 
 function toggleTimer() {
   isTimerPaused = !isTimerPaused;
-  const btn = document.getElementById("timer-toggle-btn");
-  btn.innerText = isTimerPaused ? "▶️" : "⏸️";
-}
-
-function updateTimerDisplay() {
-  const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
-  const secs = (secondsElapsed % 60).toString().padStart(2, '0');
-  document.getElementById("timer").innerText = `⏱️ ${mins}:${secs}`;
+  document.getElementById("timer-toggle-btn").innerText = isTimerPaused ? "▶️" : "⏸️";
 }
 
 function finishExam() {
-  if (!confirm("Sınavı bitirmek istediğinize emin misiniz?")) return;
+  if (!confirm("Sınavı bitirmek istediğine emin misin?")) return;
   stopTimer();
   
-  let correct = 0;
-  let wrong = 0;
-  let empty = 0;
+  let correct = 0, wrong = 0, empty = 0;
   let wrongDetailsHtml = "";
-  
+
   activeQuestions.forEach((q, idx) => {
     const userAns = userAnswers[idx];
-    if (!userAns) {
-      empty++;
-    } else if (userAns === q.correct.toUpperCase()) {
-      correct++;
-    } else {
+    if (!userAns) empty++;
+    else if (userAns === q.correct.toUpperCase()) correct++;
+    else {
       wrong++;
-      wrongDetailsHtml += `
-        <div style="background:#0f172a; padding:10px; border-radius:6px; margin-bottom:8px; border-left:3px solid #ef4444;">
-          <strong>Soru ${idx + 1}:</strong> ${q.question}<br>
-          <span style="color:#ef4444;">Senin Cevabın: ${userAns}</span> | <span style="color:#10b981;">Doğru Cevap: ${q.correct.toUpperCase()}</span><br>
-          <small style="color:#94a3b8;">${q.explanation || ''}</small>
-        </div>
-      `;
+      wrongDetailsHtml += `<div style="background:#0f172a; padding:8px; border-radius:6px; margin-bottom:6px; border-left:3px solid #ef4444;">Soru ${idx + 1} yanlış. Doğru: ${q.correct.toUpperCase()}</div>`;
     }
   });
-  
+
   const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
   const secs = (secondsElapsed % 60).toString().padStart(2, '0');
   const timeFormatted = `${mins}:${secs}`;
-  
+
   const historyKey = `yds_history_${currentUser}`;
   let historyList = JSON.parse(localStorage.getItem(historyKey)) || [];
-  
-  const examResult = {
+  historyList.push({
     topic: currentExamTopic,
     date: currentExamDate,
-    correct: correct,
-    wrong: wrong,
-    empty: empty,
+    correct, wrong, empty,
     totalQuestions: activeQuestions.length,
     totalSeconds: secondsElapsed,
-    timeFormatted: timeFormatted
-  };
-  
-  historyList.push(examResult);
+    timeFormatted
+  });
   localStorage.setItem(historyKey, JSON.stringify(historyList));
-  
+
   document.getElementById("rep-correct").innerText = correct;
   document.getElementById("rep-wrong").innerText = wrong;
   document.getElementById("rep-empty").innerText = empty;
   document.getElementById("rep-time").innerText = timeFormatted;
-  document.getElementById("wrong-answers-list").innerHTML = wrongDetailsHtml || "<p style='color:#10b981;'>Tebrikler, hiç yanlışınız yok! 🎉</p>";
+  document.getElementById("wrong-answers-list").innerHTML = wrongDetailsHtml || "<p style='color:#10b981;'>Tebrikler, hiç yanlışın yok! 🎉</p>";
   
   showScreen('report-screen');
 }

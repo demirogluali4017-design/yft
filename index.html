@@ -11,7 +11,7 @@
   <script type="text/javascript">
      (function(){
         emailjs.init({
-          publicKey: "BURAYA_EMAILJS_PUBLIC_KEY_GELECEK",
+          publicKey: "G7rZjDwlhV1o6PesF",
         });
      })();
   </script>
@@ -27,13 +27,11 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* 🇫🇷 FRANSIZ HAVA KATMANI VE ARKA PLAN ANİMASYONLARI (Soru Ekranı Hariç) */
     .screen:not(#quiz-screen) {
       position: relative;
       overflow: hidden;
     }
 
-    /* Arka planda süzülen ikonik Fransız figürleri ve parıltılar */
     .screen:not(#quiz-screen)::before {
       content: "🗼 ⚜️ 🥐 🇫🇷 ☕ 🗼 ⚜️";
       position: absolute;
@@ -59,7 +57,6 @@
       100% { transform: rotate(-15deg) translateY(0); }
     }
 
-    /* Şık Paris Rüzgarı / Işık Efekti */
     .screen:not(#quiz-screen)::after {
       content: '';
       position: absolute;
@@ -70,26 +67,23 @@
       z-index: 0;
     }
 
-    /* Ekran içeriklerinin arka plan animasyonunun üstünde görünmesini sağla */
     .screen:not(#quiz-screen) > * {
       position: relative;
       z-index: 1;
     }
 
-    /* GİRİŞ EKRANI STİLİ */
     #login-screen, #main-menu { justify-content: center; align-items: center; text-align: center; padding: 20px; }
     .login-box { background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); padding: 35px; border-radius: 16px; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .login-box input { width: 100%; padding: 14px; margin: 15px 0; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 16px; outline: none; transition: 0.3s; }
     .login-box input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
 
     #main-menu h1 { font-size: 28px; margin-bottom: 5px; background: linear-gradient(to right, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .menu-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; margin-bottom: 25px; max-width: 500px; }
+    .menu-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; margin-bottom: 25px; max-width: 520px; }
     
     .menu-card { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 18px; border-radius: 14px; width: 155px; cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .menu-card:hover { transform: translateY(-6px) scale(1.03); background: rgba(56, 189, 248, 0.15); border-color: #38bdf8; box-shadow: 0 10px 20px rgba(56, 189, 248, 0.2); }
     .menu-card h3 { font-size: 15px; color: #e2e8f0; }
 
-    /* GENEL FORM VE KONTEYNERLAR */
     .container { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); color: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 100%; max-width: 750px; margin: auto; display: flex; flex-direction: column; min-height: 85vh; justify-content: space-between; }
     
     .btn { padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.2s ease; text-align: center; font-size: 14px; }
@@ -102,7 +96,6 @@
     .btn-info { background: #06b6d4; color: white; }
     .btn-success { background: #10b981; color: white; }
 
-    /* TEST EKRANI DÜZENİ */
     #quiz-screen { flex-direction: column; height: 100vh; background: #0f172a; }
     #top-bar { background: #1e293b; color: #fff; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
     #workspace { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
@@ -129,6 +122,9 @@
     .set-item-card { background: #0f172a; border: 1px solid #334155; padding: 14px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
     .set-item-card:hover { border-color: #38bdf8; background: rgba(56, 189, 248, 0.05); }
 
+    .flashcard { background: #0f172a; border: 2px solid #334155; border-radius: 16px; padding: 30px; text-align: center; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.3); transition: 0.3s; }
+    .flashcard:hover { border-color: #38bdf8; }
+
     .app-footer { text-align: center; padding: 12px; font-size: 12px; color: #64748b; font-style: italic; letter-spacing: 0.5px; width: 100%; margin-top: auto; }
     .app-footer span { font-weight: 600; color: #94a3b8; }
   </style>
@@ -154,6 +150,8 @@
       
       <div class="menu-cards" style="margin: 25px auto;">
         <div class="menu-card" onclick="openSetSelection()"><h3>📝 Soru Çöz</h3></div>
+        <div class="menu-card" onclick="showScreen('vocab-menu-screen')"><h3>📚 Kelime Defteri</h3></div>
+        <div class="menu-card" onclick="openReminderScreen()"><h3>⏰ Hatırlatıcı</h3></div>
         <div class="menu-card" onclick="checkAdminAccess()"><h3>🔒 Yönetici Paneli</h3></div>
         <div class="menu-card" onclick="showScreen('history-screen')"><h3>📜 Geçmişim</h3></div>
         <div class="menu-card" onclick="showScreen('analytics-screen')"><h3>📊 Grafik Analiz</h3></div>
@@ -181,12 +179,149 @@
     </div>
   </div>
 
-  <!-- 3. YÖNETİCİ JSON YÜKLEME PANELİ -->
+  <!-- 1.2 GÜNLÜK HATIRLATICI E-POSTA AYAR EKRANI -->
+  <div id="reminder-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 550px;">
+      <div>
+        <h2>⏰ Günlük E-Posta Hatırlatıcısı</h2>
+        <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Çalışmalarını aksatmamak için her gün e-posta kutuna hatırlatıcı mesajı gönderelim.</p>
+        
+        <div style="margin: 15px 0;">
+          <label style="font-size:13px; color:#94a3b8;">E-Posta Adresin:</label>
+          <input type="email" id="reminder-email" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; margin-top:5px;" placeholder="ornek@mail.com">
+        </div>
+
+        <div style="margin: 15px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Hatırlatıcı Durumu:</label>
+          <div style="margin-top: 5px;">
+            <label style="font-size:14px; cursor:pointer;"><input type="checkbox" id="reminder-active" style="margin-right:8px;"> Her Gün Hatırlatıcı Gönder</label>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="btn btn-primary" style="flex:2;" onclick="saveReminderSettings()">💾 Ayarları Kaydet</button>
+          <button class="btn btn-success" style="flex:1;" onclick="sendTestReminderEmail()">✉️ Şimdi Test Et</button>
+        </div>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 2. KELİME DEFTERİ MENÜ EKRANI -->
+  <div id="vocab-menu-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 600px;">
+      <div>
+        <h2>📚 Quizlet Tarzı Kelime Defteri</h2>
+        <p style="font-size:13px; color:#94a3b8; margin-top:5px;">Öğrendiğin kelimeleri ekle, eş anlamlılarını yaz ve kartlarla pratik yap.</p>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin: 25px 0;">
+          <button class="btn btn-primary" style="padding:20px; font-size:15px;" onclick="showScreen('vocab-add-screen')">➕ Yeni Kelime Ekle</button>
+          <button class="btn btn-success" style="padding:20px; font-size:15px;" onclick="startFlashcards()">🔄 Kelimeleri Tekrar Et</button>
+        </div>
+
+        <h3 style="font-size:15px; margin-bottom:10px;">📖 Kayıtlı Kelimelerim</h3>
+        <div id="vocab-list-container" style="max-height: 250px; overflow-y: auto; background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;"></div>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 2.1 YENİ KELİME EKLEME EKRANI -->
+  <div id="vocab-add-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 600px;">
+      <div>
+        <h2>➕ Kelime Kartı Ekle</h2>
+        
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Fransızca Kelime / İfade:</label>
+          <input type="text" id="vocab-word" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Cependant">
+        </div>
+
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Türkçe Anlamı:</label>
+          <input type="text" id="vocab-meaning" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Ancak, hâlbuki">
+        </div>
+
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Eş Anlamlıları (Virgülle ayırabilirsin):</label>
+          <input type="text" id="vocab-synonyms" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Néanmoins, pourtant, toutefois">
+        </div>
+
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Örnek Cümle (Fransızca):</label>
+          <textarea id="vocab-example" style="width:100%; height:70px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Il est intelligent; cependant, il est paresseux."></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+          <button class="btn btn-secondary" onclick="showScreen('vocab-menu-screen')" style="flex:1;">İptal</button>
+          <button class="btn btn-primary" onclick="handleSaveVocab()" style="flex:2;">💾 Kelimeyi Kaydet</button>
+        </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 2.2 KELİME TEKRAR EKRANI -->
+  <div id="vocab-study-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 600px; text-align: center;">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+          <span id="vocab-counter" style="font-size:13px; color:#38bdf8; font-weight:bold;">Kart 1 / 10</span>
+          <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('vocab-menu-screen')">✖ Çıkış</button>
+        </div>
+
+        <div class="flashcard" onclick="flipFlashcard()">
+          <div id="flashcard-front">
+            <h2 id="fc-word" style="font-size:28px; color:#38bdf8; margin-bottom:10px;">-</h2>
+            <p style="font-size:13px; color:#94a3b8;">(Anlamını görmek için karta tıkla)</p>
+          </div>
+          <div id="flashcard-back" style="display:none;">
+            <h3 id="fc-meaning" style="font-size:22px; color:#10b981; margin-bottom:8px;">-</h3>
+            <p style="font-size:14px; color:#cbd5e1; margin-bottom:6px;"><strong>Eş Anlamlılar:</strong> <span id="fc-synonyms">-</span></p>
+            <p style="font-size:13px; color:#94a3b8; font-style:italic;" id="fc-example">-</p>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:25px;">
+          <button class="btn btn-danger" style="flex:1;" onclick="nextFlashcard('again')">🔴 Hatırlamadım</button>
+          <button class="btn btn-success" style="flex:1;" onclick="nextFlashcard('known')">🟢 Biliyorum</button>
+        </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 3. YÖNETİCİ PANELİ -->
   <div id="upload-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 650px;">
       <div>
-        <h2>🔑 Yönetici Toplu JSON Soru Yükleme Paneli</h2>
-        <p style="font-size:12px; color:#38bdf8; margin-bottom:12px;">Tek bir JSON içerisinde ister tek, ister **birden fazla makale setini** liste halinde yapıştırıp topluca ekleyebilirsin.</p>
+        <h2>🔑 Yönetici Kontrol Paneli</h2>
+        <p style="font-size:13px; color:#38bdf8; margin-bottom:20px;">Soru setlerini toplu yükleyebilir ya da bozuk setleri / kelimeleri yönetip silebilirsin.</p>
+        
+        <div style="display:grid; grid-template-columns: 1fr; gap:12px; margin-top:15px;">
+          <button class="btn btn-primary" style="padding:16px; font-size:15px;" onclick="showScreen('admin-upload-sub')">📥 JSON ile Soru Seti Yükle</button>
+          <button class="btn btn-warning" style="padding:16px; font-size:15px;" onclick="openAdminManager('sets')">🗑️ Yüklenen Soru Setlerini Yönet / Sil</button>
+          <button class="btn btn-info" style="padding:16px; font-size:15px;" onclick="openAdminManager('vocab')">📚 Öğrenilen Kelimeleri Yönet / Sil</button>
+        </div>
+      </div>
+      <div style="margin-top: 20px;">
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menüye Dön</button>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 3.1 JSON YÜKLEME -->
+  <div id="admin-upload-sub" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 650px;">
+      <div>
+        <h2>📥 Toplu JSON Soru Yükleme</h2>
         
         <div style="margin: 8px 0;">
           <label style="font-size:13px; color:#94a3b8;">Yönetici Şifresi:</label>
@@ -194,30 +329,31 @@
         </div>
 
         <div style="margin: 8px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Toplu JSON Kodları (Dizi [ ] veya Tekil Nesne { }):</label>
-          <textarea id="admin-json-input" style="width:100%; height:260px; padding:10px; background:#0f172a; border:1px solid #334155; color:#38bdf8; font-family:monospace; font-size:12px; border-radius:6px;" placeholder='[
-  {
-    "topic": "YDS Deneme 1",
-    "date": "2026-06-01",
-    "articleTitle": "Birinci Makale",
-    "articleText": "Metin...",
-    "questions": [
-      {
-        "id": 1,
-        "question": "Soru...",
-        "options": { "a": "...", "b": "...", "c": "...", "d": "...", "e": "..." },
-        "correct": "A",
-        "explanation": "Açıklama..."
-      }
-    ]
-  }
-]'></textarea>
+          <label style="font-size:13px; color:#94a3b8;">Toplu JSON Kodları:</label>
+          <textarea id="admin-json-input" style="width:100%; height:220px; padding:10px; background:#0f172a; border:1px solid #334155; color:#38bdf8; font-family:monospace; font-size:12px; border-radius:6px;" placeholder='[...]'></textarea>
         </div>
 
         <div style="display:flex; gap:10px; margin-top:15px;">
-          <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="flex:1;">🏠 Menü</button>
+          <button class="btn btn-secondary" onclick="showScreen('upload-screen')" style="flex:1;">⬅️ Geri</button>
           <button class="btn btn-primary" onclick="handleSaveJSONSet()" style="flex:2;">💾 Soru Setlerini Kaydet</button>
         </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 3.2 İÇERİK YÖNETİMİ -->
+  <div id="admin-manage-screen" class="screen" style="padding: 15px;">
+    <div class="container" style="max-width: 650px;">
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h2 id="admin-manager-title" style="font-size:18px;">İçerik Yönetimi</h2>
+          <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('upload-screen')">⬅️ Yönetici Menü</button>
+        </div>
+        <div id="admin-manager-list" style="max-height: 50vh; overflow-y: auto; background:#0f172a; padding:10px; border-radius:10px; border:1px solid #334155;"></div>
+      </div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="width:100%;">🏠 Ana Menü</button>
       </div>
       <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
     </div>

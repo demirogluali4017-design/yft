@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>YDS Fransızca - Çalışma Portalı</title>
+  <!-- Google reCAPTCHA Script -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; height: 100vh; overflow: hidden; }
@@ -17,8 +19,8 @@
     .login-box input { width: 100%; padding: 12px; margin: 15px 0; border-radius: 6px; border: none; font-size: 16px; }
 
     #main-menu h1 { font-size: 26px; margin-bottom: 5px; }
-    .menu-cards { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 20px; margin-bottom: 25px; }
-    .menu-card { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 18px; border-radius: 12px; width: 160px; cursor: pointer; transition: 0.3s; }
+    .menu-cards { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; margin-bottom: 20px; }
+    .menu-card { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 15px; border-radius: 12px; width: 145px; cursor: pointer; transition: 0.3s; text-align: center; }
     .menu-card:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.2); }
 
     /* GENEL FORM VE KONTEYNERLAR */
@@ -30,19 +32,16 @@
     .btn-warning { background: #ffc107; color: #212529; }
     .btn-info { background: #17a2b8; color: white; }
 
-    /* TEST EKRANI DÜZENİ (MOBİL UYUMLU DİKEY YERLEŞİM) */
+    /* TEST EKRANI DÜZENİ */
     #quiz-screen { flex-direction: column; height: 100vh; background: #fff; }
     #top-bar { background: #1a252f; color: #fff; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
-    
     #workspace { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
     
-    /* Makale üstte sabit/kaydırılabilir alan */
     #article-panel { flex: 0 0 42%; padding: 15px; border-bottom: 3px solid #e0e0e0; overflow-y: auto; background-color: #fafbfc; }
     #article-number { font-size: 12px; color: #666; font-weight: bold; }
     #article-title { font-size: 16px; margin: 4px 0 8px 0; color: #1a252f; }
     #article-text { line-height: 1.6; font-size: 14px; text-align: justify; }
 
-    /* Sorular altta bağımsız kaydırılabilir alan */
     #question-panel { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; justify-content: space-between; background: #fff; }
     
     .timer-controls { display: flex; align-items: center; gap: 6px; }
@@ -50,18 +49,14 @@
 
     .option-btn { text-align: left; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; width: 100%; margin-bottom: 6px; }
     .option-btn.selected { background-color: #e2e6ea; border-color: #343a40; font-weight: bold; }
-    
     .explanation-box { margin-top: 10px; padding: 12px; background: #e9ecef; border-left: 4px solid #17a2b8; border-radius: 6px; font-size: 13px; display: none; }
     
-    /* ANALİZ VE RAPOR EKRANLARI */
     .history-card { border: 1px solid #ddd; padding: 12px; border-radius: 8px; margin-bottom: 10px; background: #f8f9fa; font-size: 14px; }
     .stat-box { display: flex; justify-content: space-between; background: #e9ecef; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center; }
 
-    /* SET SEÇİM LİSTESİ */
     .set-item-card { background: #f8f9fa; border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: 0.2s; }
     .set-item-card:hover { background: #e9ecef; border-color: #bbb; }
 
-    /* GELİŞTİRİCİ İMZASI STİLİ */
     .app-footer { text-align: center; padding: 10px; font-size: 12px; color: #7f8c8d; font-style: italic; letter-spacing: 0.5px; width: 100%; margin-top: auto; }
     .app-footer span { font-weight: 600; color: #34495e; }
     #main-menu .app-footer, #login-screen .app-footer { color: #bdc3c7; }
@@ -88,7 +83,8 @@
       <p>Hoş geldin, <strong id="welcome-username" style="color:#f1c40f;"></strong></p>
       <div class="menu-cards">
         <div class="menu-card" onclick="openSetSelection()"><h3>📝 Soru Çöz</h3></div>
-        <div class="menu-card" onclick="showScreen('upload-screen')"><h3>➕ Soru Yükle</h3></div>
+        <div class="menu-card" onclick="showScreen('public-upload-screen')"><h3>🌐 Soru Ekle (Halka Açık)</h3></div>
+        <div class="menu-card" onclick="checkAdminAccess()"><h3>🔒 Yönetici Paneli</h3></div>
         <div class="menu-card" onclick="showScreen('history-screen')"><h3>📜 Geçmiş</h3></div>
         <div class="menu-card" onclick="showScreen('analytics-screen')"><h3>📊 Analiz</h3></div>
       </div>
@@ -97,7 +93,7 @@
     <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
   </div>
 
-  <!-- 1.1 KONU/SET SEÇİM EKRANI (YENİ) -->
+  <!-- 1.1 KONU SEÇİM EKRANI -->
   <div id="set-select-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -111,14 +107,39 @@
     </div>
   </div>
 
-  <!-- 2. SORU YÜKLEME PANELİ -->
+  <!-- 2. HALKA AÇIK SORU YÜKLEME EKRANI (CAPTCHA KORUMALI) -->
+  <div id="public-upload-screen" class="screen" style="padding: 15px;">
+    <div class="container">
+      <div>
+        <h2>🌐 Topluluk Soru Yükleme Alanı</h2>
+        <p style="font-size:12px; color:#666; margin-bottom:10px;">Herkes sisteme katkıda bulunabilir. Lütfen bot olmadığınızı doğrulayın.</p>
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px;">Konu Başlığı:</label>
+          <input type="text" id="pub-upload-topic" style="width:100%; padding:8px; margin-top:3px;" placeholder="Örn: Fransız Edebiyatı">
+        </div>
+        <div style="margin: 10px 0;">
+          <label style="font-size:13px;">JSON Verisi:</label>
+          <textarea id="pub-upload-json" style="width:100%; height:100px; padding:8px; margin-top:3px; font-family:monospace; font-size:12px;" placeholder="Soru formatını buraya yapıştırın..."></textarea>
+        </div>
+        <!-- Google reCAPTCHA Kutusu -->
+        <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI" style="margin: 10px 0;"></div>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="flex:1;">🏠 Menü</button>
+          <button class="btn btn-primary" onclick="handlePublicSaveSet()" style="flex:1;">📤 Paylaş & Kaydet</button>
+        </div>
+      </div>
+      <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
+    </div>
+  </div>
+
+  <!-- 3. YÖNETİCİ ÖZEL YÜKLEME PANELİ (ŞİFRE KORUMALI) -->
   <div id="upload-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
-        <h2>Yeni Soru Seti Yükle</h2>
+        <h2>🔑 Yönetici Soru Paneli (Gnothi)</h2>
         <div style="margin: 10px 0;">
           <label style="font-size:13px;">Konu Başlığı:</label>
-          <input type="text" id="upload-topic" style="width:100%; padding:8px; margin-top:3px;" placeholder="Örn: Fransız İhtilali">
+          <input type="text" id="upload-topic" style="width:100%; padding:8px; margin-top:3px;" placeholder="Örn: YDS Özel Deneme">
         </div>
         <div style="margin: 10px 0;">
           <label style="font-size:13px;">Tarih:</label>
@@ -126,18 +147,18 @@
         </div>
         <div style="margin: 10px 0;">
           <label style="font-size:13px;">JSON Verisi:</label>
-          <textarea id="upload-json" style="width:100%; height:120px; padding:8px; margin-top:3px; font-family:monospace; font-size:12px;" placeholder="Yapay zeka çıktısını buraya yapıştırın..."></textarea>
+          <textarea id="upload-json" style="width:100%; height:120px; padding:8px; margin-top:3px; font-family:monospace; font-size:12px;" placeholder="Yapay zeka çıktısı..."></textarea>
         </div>
         <div style="display:flex; gap:10px;">
           <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="flex:1;">🏠 Menü</button>
-          <button class="btn btn-primary" onclick="handleSaveSet()" style="flex:1;">💾 Kaydet</button>
+          <button class="btn btn-primary" onclick="handleSaveSet()" style="flex:1;">💾 Admin Kaydet</button>
         </div>
       </div>
       <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
     </div>
   </div>
 
-  <!-- 3. TEST ÇÖZME EKRANI (ÜST BAR TEMİZLENDİ) -->
+  <!-- 4. TEST ÇÖZME EKRANI -->
   <div id="quiz-screen" class="screen">
     <div id="top-bar">
       <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="showScreen('set-select-screen')">⬅️ Konular</button>
@@ -149,14 +170,12 @@
     </div>
 
     <div id="workspace">
-      <!-- Sabit/Kaydırılabilir Makale Alanı -->
       <div id="article-panel">
         <div id="article-number">Metin 1 / 1</div>
         <h1 id="article-title">Yükleniyor...</h1>
         <div id="article-text"></div>
       </div>
 
-      <!-- Kaydırılabilir Soru ve Şıklar Alanı -->
       <div id="question-panel">
         <div>
           <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold; font-size:14px;">
@@ -183,7 +202,7 @@
     </div>
   </div>
 
-  <!-- 4. SINAV SONU RAPORU -->
+  <!-- 5. SINAV SONU RAPORU -->
   <div id="report-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -202,7 +221,7 @@
     </div>
   </div>
 
-  <!-- 5. GEÇMİŞ SINAV OTURUMLARI -->
+  <!-- 6. GEÇMİŞ OTURUMLAR -->
   <div id="history-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -214,7 +233,7 @@
     </div>
   </div>
 
-  <!-- 6. İLERLEME ANALİZİ -->
+  <!-- 7. İLERLEME ANALİZİ -->
   <div id="analytics-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>

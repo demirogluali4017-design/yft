@@ -9,7 +9,8 @@ let timerInterval = null;
 let isTimerRunning = false;
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("upload-date").valueAsDate = new Date();
+  const dateInput = document.getElementById("upload-date");
+  if (dateInput) dateInput.valueAsDate = new Date();
   
   const savedUser = localStorage.getItem("yds_current_user");
   if (savedUser) {
@@ -51,16 +52,183 @@ function showScreen(screenId) {
   if (screenId === 'analytics-screen') renderAnalytics('weekly');
 }
 
-// "Soru Çöz"e basıldığında doğrudan testi başlatmak yerine önce konu seçim ekranını açar
 function openSetSelection() {
   showScreen('set-select-screen');
 }
 
-// Konu/Set seçim listesini kartlar halinde ekrana basar
+// 🔒 Yönetici Şifre Kontrolü (Şifre: 258025)
+function checkAdminAccess() {
+  const password = prompt("Yönetici Paneli Şifresini Girin:");
+  if (password === null) return;
+  
+  if (password === "258025") {
+    showScreen('upload-screen');
+  } else {
+    alert("❌ Hatalı şifre! Bu alana sadece yönetici erişebilir.");
+  }
+}
+
+// 📧 Her 2 Sette Bir aliidemiroglu@icloud.com Adresine Mail Gönderen Fonksiyon
+function checkAndSendMilestoneNotification() {
+  const currentCount = allSets.length;
+  
+  if (currentCount > 0 && currentCount % 2 === 0) {
+    const milestoneKey = `yds_milestone_sent_${currentCount}`;
+    const alreadySent = localStorage.getItem(milestoneKey);
+
+    if (!alreadySent) {
+      emailjs.send("service_snh9thi", "template_2n21pgo", {
+        message: `Tebrikler Gnothi! Portalın tam ${currentCount} soru setine ulaştı.`,
+        to_email: "aliidemiroglu@icloud.com"
+      }).then(() => {
+        localStorage.setItem(milestoneKey, "true");
+        console.log(`${currentCount}. set için hedef maili başarıyla gönderildi!`);
+      }).catch((err) => {
+        console.error("Mail gönderilemedi:", err);
+      });
+    }
+  }
+}
+
+// 🌐 Halka Açık Soru Yükleme (reCAPTCHA, 5 Şıklı, Doğru Şık İşaretlemeli)
+function handlePublicSaveSet() {
+  const topic = document.getElementById("pub-upload-topic").value.trim();
+  const articleTitle = document.getElementById("pub-article-title").value.trim();
+  const articleText = document.getElementById("pub-article-text").value.trim();
+  
+  const qText = document.getElementById("pub-q-text").value.trim();
+  const optA = document.getElementById("pub-opt-a").value.trim();
+  const optB = document.getElementById("pub-opt-b").value.trim();
+  const optC = document.getElementById("pub-opt-c").value.trim();
+  const optD = document.getElementById("pub-opt-d").value.trim();
+  const optE = document.getElementById("pub-opt-e").value.trim();
+  const correctOpt = document.getElementById("pub-correct-opt").value;
+  const explanation = document.getElementById("pub-explanation").value.trim();
+
+  const recaptchaResponse = grecaptcha.getResponse();
+  if (!recaptchaResponse) {
+    alert("Lütfen bot olmadığınıza dair reCAPTCHA doğrulamasını tamamlayın!");
+    return;
+  }
+
+  if (!topic || !articleTitle || !articleText || !qText || !optA || !optB || !optC || !optD || !optE) {
+    alert("Lütfen zorunlu alanları ve 5 şıkkın tamamını eksiksiz doldurun!");
+    return;
+  }
+
+  const newSet = {
+    id: "set_pub_" + Date.now(),
+    date: new Date().toISOString().split('T')[0],
+    topic: `[Topluluk] ${topic}`,
+    completed: false,
+    articles: [
+      {
+        title: articleTitle,
+        text: articleText,
+        questions: [
+          {
+            id: "q_1",
+            question: qText,
+            options: [`A) ${optA}`, `B) ${optB}`, `C) ${optC}`, `D) ${optD}`, `E) ${optE}`],
+            answer: correctOpt,
+            explanation: explanation || "Açıklama girilmedi."
+          }
+        ]
+      }
+    ]
+  };
+
+  allSets.unshift(newSet);
+  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
+
+  checkAndSendMilestoneNotification();
+
+  alert("✅ Teşekkürler! Sorunuz topluluk havuzuna başarıyla eklendi.");
+  
+  document.getElementById("pub-upload-topic").value = "";
+  document.getElementById("pub-article-title").value = "";
+  document.getElementById("pub-article-text").value = "";
+  document.getElementById("pub-q-text").value = "";
+  document.getElementById("pub-opt-a").value = "";
+  document.getElementById("pub-opt-b").value = "";
+  document.getElementById("pub-opt-c").value = "";
+  document.getElementById("pub-opt-d").value = "";
+  document.getElementById("pub-opt-e").value = "";
+  document.getElementById("pub-explanation").value = "";
+  grecaptcha.reset();
+  
+  showScreen('set-select-screen');
+}
+
+// 🔒 Yönetici Panelinden Soru Kaydetme (Şifre Korumalı, 5 Şıklı, Doğru Şık Seçimli)
+function handleSaveSet() {
+  const topic = document.getElementById("upload-topic").value.trim();
+  const date = document.getElementById("upload-date").value;
+  
+  const articleTitle = document.getElementById("admin-article-title").value.trim();
+  const articleText = document.getElementById("admin-article-text").value.trim();
+  
+  const qText = document.getElementById("admin-q-text").value.trim();
+  const optA = document.getElementById("admin-opt-a").value.trim();
+  const optB = document.getElementById("admin-opt-b").value.trim();
+  const optC = document.getElementById("admin-opt-c").value.trim();
+  const optD = document.getElementById("admin-opt-d").value.trim();
+  const optE = document.getElementById("admin-opt-e").value.trim();
+  const correctOpt = document.getElementById("admin-correct-opt").value;
+  const explanation = document.getElementById("admin-explanation").value.trim();
+
+  if (!topic || !articleTitle || !articleText || !qText || !optA || !optB || !optC || !optD || !optE) {
+    alert("Lütfen Konu Başlığı, Makale ve 5 şıklı soru alanlarını eksiksiz doldurun!");
+    return;
+  }
+
+  const newSet = {
+    id: "set_admin_" + Date.now(),
+    date: date || new Date().toISOString().split('T')[0],
+    topic: topic,
+    completed: false,
+    articles: [
+      {
+        title: articleTitle,
+        text: articleText,
+        questions: [
+          {
+            id: "q_1",
+            question: qText,
+            options: [`A) ${optA}`, `B) ${optB}`, `C) ${optC}`, `D) ${optD}`, `E) ${optE}`],
+            answer: correctOpt,
+            explanation: explanation || "Açıklama girilmedi."
+          }
+        ]
+      }
+    ]
+  };
+
+  allSets.unshift(newSet);
+  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
+
+  checkAndSendMilestoneNotification();
+
+  alert("✅ Admin seti başarıyla kaydedildi!");
+  
+  document.getElementById("upload-topic").value = "";
+  document.getElementById("admin-article-title").value = "";
+  document.getElementById("admin-article-text").value = "";
+  document.getElementById("admin-q-text").value = "";
+  document.getElementById("admin-opt-a").value = "";
+  document.getElementById("admin-opt-b").value = "";
+  document.getElementById("admin-opt-c").value = "";
+  document.getElementById("admin-opt-d").value = "";
+  document.getElementById("admin-opt-e").value = "";
+  document.getElementById("admin-explanation").value = "";
+
+  showScreen('set-select-screen');
+}
+
 function renderSetSelectionList() {
   const container = document.getElementById("set-list-container");
   if (allSets.length === 0) {
-    container.innerHTML = "<p>Sistemde henüz kayıtlı soru seti yok. Lütfen 'Soru Yükle' bölümünden set ekleyin.</p>";
+    container.innerHTML = "<p>Sistemde henüz kayıtlı soru seti yok.</p>";
     return;
   }
 
@@ -274,36 +442,4 @@ function prevQuestion() {
     currentQuestionIndex = prevArticle.questions.length - 1;
   }
   loadState();
-}
-
-function handleSaveSet() {
-  const topic = document.getElementById("upload-topic").value.trim();
-  const date = document.getElementById("upload-date").value;
-  const jsonText = document.getElementById("upload-json").value.trim();
-
-  if (!topic || !jsonText) {
-    alert("Lütfen Konu Başlığı ve JSON verisini girin!");
-    return;
-  }
-
-  try {
-    const parsedArticles = JSON.parse(jsonText);
-    const newSet = {
-      id: "set_" + Date.now(),
-      date: date || new Date().toISOString().split('T')[0],
-      topic: topic,
-      completed: false,
-      articles: Array.isArray(parsedArticles) ? parsedArticles : [parsedArticles]
-    };
-
-    allSets.unshift(newSet);
-    localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
-
-    alert("✅ Set başarıyla kaydedildi!");
-    document.getElementById("upload-topic").value = "";
-    document.getElementById("upload-json").value = "";
-    showScreen('set-select-screen');
-  } catch (err) {
-    alert("❌ HATA: Geçersiz JSON verisi.");
-  }
 }

@@ -1,445 +1,126 @@
-let allSets = [];
-let currentSetIndex = 0;
-let currentArticleIndex = 0;
-let currentQuestionIndex = 0;
-let userAnswers = {};
+let myChartInstance = null;
 
-let secondsPassed = 0;
-let timerInterval = null;
-let isTimerRunning = false;
-
-document.addEventListener("DOMContentLoaded", () => {
-  const dateInput = document.getElementById("upload-date");
-  if (dateInput) dateInput.valueAsDate = new Date();
+function saveExamSession(sessionData) {
+  const currentUser = localStorage.getItem("yds_current_user") || "Misafir";
+  const key = `yds_history_${currentUser}`;
   
-  const savedUser = localStorage.getItem("yds_current_user");
-  if (savedUser) {
-    document.getElementById("welcome-username").innerText = savedUser;
-    showScreen('main-menu');
-  } else {
-    showScreen('login-screen');
-  }
-  
-  initData();
-});
-
-function handleLogin() {
-  const username = document.getElementById("username-input").value.trim();
-  if (!username) {
-    alert("Lütfen geçerli bir isim giriniz!");
-    return;
-  }
-  localStorage.setItem("yds_current_user", username);
-  document.getElementById("welcome-username").innerText = username;
-  showScreen('main-menu');
+  let history = JSON.parse(localStorage.getItem(key)) || [];
+  history.push(sessionData);
+  localStorage.setItem(key, JSON.stringify(history));
 }
 
-function handleLogout() {
-  localStorage.removeItem("yds_current_user");
-  document.getElementById("username-input").value = "";
-  showScreen('login-screen');
-}
+function renderHistory() {
+  const currentUser = localStorage.getItem("yds_current_user") || "Misafir";
+  const key = `yds_history_${currentUser}`;
+  const history = JSON.parse(localStorage.getItem(key)) || [];
+  const container = document.getElementById("history-list");
 
-function showScreen(screenId) {
-  pauseTimer();
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
-
-  if (screenId === 'set-select-screen') {
-    renderSetSelectionList();
-  }
-  if (screenId === 'history-screen') renderHistory();
-  if (screenId === 'analytics-screen') renderAnalytics('weekly');
-}
-
-function openSetSelection() {
-  showScreen('set-select-screen');
-}
-
-// 🔒 Yönetici Şifre Kontrolü (Şifre: 258025)
-function checkAdminAccess() {
-  const password = prompt("Yönetici Paneli Şifresini Girin:");
-  if (password === null) return;
-  
-  if (password === "258025") {
-    showScreen('upload-screen');
-  } else {
-    alert("❌ Hatalı şifre! Bu alana sadece yönetici erişebilir.");
-  }
-}
-
-// 📧 Her 2 Sette Bir aliidemiroglu@icloud.com Adresine Mail Gönderen Fonksiyon
-function checkAndSendMilestoneNotification() {
-  const currentCount = allSets.length;
-  
-  if (currentCount > 0 && currentCount % 2 === 0) {
-    const milestoneKey = `yds_milestone_sent_${currentCount}`;
-    const alreadySent = localStorage.getItem(milestoneKey);
-
-    if (!alreadySent) {
-      emailjs.send("service_snh9thi", "template_2n21pgo", {
-        message: `Tebrikler Gnothi! Portalın tam ${currentCount} soru setine ulaştı.`,
-        to_email: "aliidemiroglu@icloud.com"
-      }).then(() => {
-        localStorage.setItem(milestoneKey, "true");
-        console.log(`${currentCount}. set için hedef maili başarıyla gönderildi!`);
-      }).catch((err) => {
-        console.error("Mail gönderilemedi:", err);
-      });
-    }
-  }
-}
-
-// 🌐 Halka Açık Soru Yükleme (reCAPTCHA, 5 Şıklı, Doğru Şık İşaretlemeli)
-function handlePublicSaveSet() {
-  const topic = document.getElementById("pub-upload-topic").value.trim();
-  const articleTitle = document.getElementById("pub-article-title").value.trim();
-  const articleText = document.getElementById("pub-article-text").value.trim();
-  
-  const qText = document.getElementById("pub-q-text").value.trim();
-  const optA = document.getElementById("pub-opt-a").value.trim();
-  const optB = document.getElementById("pub-opt-b").value.trim();
-  const optC = document.getElementById("pub-opt-c").value.trim();
-  const optD = document.getElementById("pub-opt-d").value.trim();
-  const optE = document.getElementById("pub-opt-e").value.trim();
-  const correctOpt = document.getElementById("pub-correct-opt").value;
-  const explanation = document.getElementById("pub-explanation").value.trim();
-
-  const recaptchaResponse = grecaptcha.getResponse();
-  if (!recaptchaResponse) {
-    alert("Lütfen bot olmadığınıza dair reCAPTCHA doğrulamasını tamamlayın!");
+  if (history.length === 0) {
+    container.innerHTML = "<p style='color:#94a3b8; text-align:center; padding:20px;'>Henüz tamamlanmış bir sınav oturumun bulunmuyor.</p>";
     return;
   }
 
-  if (!topic || !articleTitle || !articleText || !qText || !optA || !optB || !optC || !optD || !optE) {
-    alert("Lütfen zorunlu alanları ve 5 şıkkın tamamını eksiksiz doldurun!");
-    return;
-  }
-
-  const newSet = {
-    id: "set_pub_" + Date.now(),
-    date: new Date().toISOString().split('T')[0],
-    topic: `[Topluluk] ${topic}`,
-    completed: false,
-    articles: [
-      {
-        title: articleTitle,
-        text: articleText,
-        questions: [
-          {
-            id: "q_1",
-            question: qText,
-            options: [`A) ${optA}`, `B) ${optB}`, `C) ${optC}`, `D) ${optD}`, `E) ${optE}`],
-            answer: correctOpt,
-            explanation: explanation || "Açıklama girilmedi."
-          }
-        ]
-      }
-    ]
-  };
-
-  allSets.unshift(newSet);
-  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
-
-  checkAndSendMilestoneNotification();
-
-  alert("✅ Teşekkürler! Sorunuz topluluk havuzuna başarıyla eklendi.");
-  
-  document.getElementById("pub-upload-topic").value = "";
-  document.getElementById("pub-article-title").value = "";
-  document.getElementById("pub-article-text").value = "";
-  document.getElementById("pub-q-text").value = "";
-  document.getElementById("pub-opt-a").value = "";
-  document.getElementById("pub-opt-b").value = "";
-  document.getElementById("pub-opt-c").value = "";
-  document.getElementById("pub-opt-d").value = "";
-  document.getElementById("pub-opt-e").value = "";
-  document.getElementById("pub-explanation").value = "";
-  grecaptcha.reset();
-  
-  showScreen('set-select-screen');
-}
-
-// 🔒 Yönetici Panelinden Soru Kaydetme (Şifre Korumalı, 5 Şıklı, Doğru Şık Seçimli)
-function handleSaveSet() {
-  const topic = document.getElementById("upload-topic").value.trim();
-  const date = document.getElementById("upload-date").value;
-  
-  const articleTitle = document.getElementById("admin-article-title").value.trim();
-  const articleText = document.getElementById("admin-article-text").value.trim();
-  
-  const qText = document.getElementById("admin-q-text").value.trim();
-  const optA = document.getElementById("admin-opt-a").value.trim();
-  const optB = document.getElementById("admin-opt-b").value.trim();
-  const optC = document.getElementById("admin-opt-c").value.trim();
-  const optD = document.getElementById("admin-opt-d").value.trim();
-  const optE = document.getElementById("admin-opt-e").value.trim();
-  const correctOpt = document.getElementById("admin-correct-opt").value;
-  const explanation = document.getElementById("admin-explanation").value.trim();
-
-  if (!topic || !articleTitle || !articleText || !qText || !optA || !optB || !optC || !optD || !optE) {
-    alert("Lütfen Konu Başlığı, Makale ve 5 şıklı soru alanlarını eksiksiz doldurun!");
-    return;
-  }
-
-  const newSet = {
-    id: "set_admin_" + Date.now(),
-    date: date || new Date().toISOString().split('T')[0],
-    topic: topic,
-    completed: false,
-    articles: [
-      {
-        title: articleTitle,
-        text: articleText,
-        questions: [
-          {
-            id: "q_1",
-            question: qText,
-            options: [`A) ${optA}`, `B) ${optB}`, `C) ${optC}`, `D) ${optD}`, `E) ${optE}`],
-            answer: correctOpt,
-            explanation: explanation || "Açıklama girilmedi."
-          }
-        ]
-      }
-    ]
-  };
-
-  allSets.unshift(newSet);
-  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
-
-  checkAndSendMilestoneNotification();
-
-  alert("✅ Admin seti başarıyla kaydedildi!");
-  
-  document.getElementById("upload-topic").value = "";
-  document.getElementById("admin-article-title").value = "";
-  document.getElementById("admin-article-text").value = "";
-  document.getElementById("admin-q-text").value = "";
-  document.getElementById("admin-opt-a").value = "";
-  document.getElementById("admin-opt-b").value = "";
-  document.getElementById("admin-opt-c").value = "";
-  document.getElementById("admin-opt-d").value = "";
-  document.getElementById("admin-opt-e").value = "";
-  document.getElementById("admin-explanation").value = "";
-
-  showScreen('set-select-screen');
-}
-
-function renderSetSelectionList() {
-  const container = document.getElementById("set-list-container");
-  if (allSets.length === 0) {
-    container.innerHTML = "<p>Sistemde henüz kayıtlı soru seti yok.</p>";
-    return;
-  }
-
-  container.innerHTML = allSets.map((set, index) => `
-    <div class="set-item-card" onclick="startQuizSet(${index})">
-      <div>
-        <strong>📌 ${set.topic}</strong><br>
-        <small style="color:#666;">Tarih: ${set.date}</small>
+  container.innerHTML = history.reverse().map(item => `
+    <div class="history-card">
+      <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+        <strong style="color:#38bdf8;">📌 ${item.topic}</strong>
+        <span style="font-size:12px; color:#94a3b8;">${item.date}</span>
       </div>
-      <div>
-        ${set.completed ? '<span style="color:green; font-weight:bold; font-size:13px;">✔ Çözüldü</span>' : '<span style="color:#007bff; font-weight:bold; font-size:13px;">Başla ➔</span>'}
+      <div style="display:flex; gap:15px; font-size:13px;">
+        <span style="color:#10b981;">Doğru: ${item.correct}</span>
+        <span style="color:#ef4444;">Yanlış: ${item.wrong}</span>
+        <span style="color:#f59e0b;">Boş: ${item.empty}</span>
+        <span style="color:#94a3b8;">Süre: ${item.timeSpent}</span>
       </div>
     </div>
   `).join('');
 }
 
-function startQuizSet(index) {
-  currentSetIndex = index;
-  currentArticleIndex = 0;
-  currentQuestionIndex = 0;
-  userAnswers = {};
-  secondsPassed = 0;
-  
-  showScreen('quiz-screen');
-  loadState();
-  startTimer();
-}
+function renderAnalytics(mode) {
+  const currentUser = localStorage.getItem("yds_current_user") || "Misafir";
+  const key = `yds_history_${currentUser}`;
+  const history = JSON.parse(localStorage.getItem(key)) || [];
 
-function initData() {
-  const localData = localStorage.getItem("yds_question_sets");
-  if (localData) {
-    allSets = JSON.parse(localData);
-  } else if (window.ydsFransizcaDeneme) {
-    allSets = [{
-      id: "set_default",
-      date: new Date().toISOString().split('T')[0],
-      topic: "Genel Fransızca",
-      completed: false,
-      articles: window.ydsFransizcaDeneme
-    }];
-    localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
+  const ctx = document.getElementById('ydsChart').getContext('2d');
+
+  if (myChartInstance) {
+    myChartInstance.destroy();
   }
-}
 
-function loadState() {
-  const activeSet = allSets[currentSetIndex];
-  if (!activeSet || !activeSet.articles) return;
-
-  const currentArticle = activeSet.articles[currentArticleIndex];
-  const currentQuestion = currentArticle.questions[currentQuestionIndex];
-  const currentQId = currentQuestion.id || `q_${currentQuestionIndex}`;
-
-  document.getElementById("article-number").innerText = `Metin ${currentArticleIndex + 1} / ${activeSet.articles.length} | ${activeSet.topic}`;
-  document.getElementById("article-title").innerText = currentArticle.title;
-  document.getElementById("article-text").innerText = currentArticle.text;
-
-  document.getElementById("question-number").innerText = `Soru ${currentQuestionIndex + 1} / ${currentArticle.questions.length}`;
-  document.getElementById("question-title").innerText = currentQuestion.question;
-
-  const optionsGroup = document.getElementById("options-group");
-  optionsGroup.innerHTML = "";
-  const savedAnswer = userAnswers[currentQId];
-
-  currentQuestion.options.forEach((opt) => {
-    const letter = opt.charAt(0);
-    const btn = document.createElement("button");
-    btn.className = "option-btn";
-    if (savedAnswer === letter) btn.classList.add("selected");
-    btn.innerText = opt;
-    btn.onclick = () => selectOption(currentQId, letter);
-    optionsGroup.appendChild(btn);
-  });
-
-  document.getElementById("explanation-box").style.display = "none";
-  document.getElementById("explanation-box").innerHTML = `💡 <strong>Doğru Cevap: ${currentQuestion.answer}</strong><br>${currentQuestion.explanation}`;
-  document.getElementById("show-answer-btn").innerText = "💡 Cevabı Göster";
-}
-
-function selectOption(qId, letter) {
-  userAnswers[qId] = letter;
-  loadState();
-}
-
-function toggleAnswerVisibility() {
-  const expBox = document.getElementById("explanation-box");
-  const btn = document.getElementById("show-answer-btn");
-  
-  if (expBox.style.display === "none") {
-    expBox.style.display = "block";
-    btn.innerText = "🙈 Cevabı Gizle";
-  } else {
-    expBox.style.display = "none";
-    btn.innerText = "💡 Cevabı Göster";
-  }
-}
-
-function startTimer() {
-  if (!isTimerRunning) {
-    isTimerRunning = true;
-    clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      secondsPassed++;
-      const m = Math.floor(secondsPassed / 60);
-      const s = secondsPassed % 60;
-      const timerEl = document.getElementById("timer");
-      if (timerEl) {
-        timerEl.innerText = `⏱️ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      }
-    }, 1000);
-  }
-}
-
-function pauseTimer() {
-  isTimerRunning = false;
-  clearInterval(timerInterval);
-}
-
-function toggleTimer() {
-  const btn = document.getElementById("timer-toggle-btn");
-  if (isTimerRunning) {
-    pauseTimer();
-    btn.innerText = "▶️";
-    btn.className = "btn btn-success";
-  } else {
-    startTimer();
-    btn.innerText = "⏸️";
-    btn.className = "btn btn-warning";
-  }
-}
-
-function finishExam() {
-  pauseTimer();
-  const activeSet = allSets[currentSetIndex];
-  
-  let correct = 0, wrong = 0, empty = 0;
-  const wrongListHTML = [];
-
-  activeSet.articles.forEach(article => {
-    article.questions.forEach((q, qIndex) => {
-      const qId = q.id || `q_${qIndex}`;
-      const ans = userAnswers[qId];
-
-      if (!ans) {
-        empty++;
-      } else if (ans === q.answer) {
-        correct++;
-      } else {
-        wrong++;
-        wrongListHTML.push(`
-          <div style="border-bottom: 1px solid #ddd; padding: 8px 0;">
-            <strong>Soru:</strong> ${q.question}<br>
-            <span style="color:red;">Senin: ${ans}</span> | <span style="color:green;">Doğru: ${q.answer}</span><br>
-            <small>💡 ${q.explanation}</small>
-          </div>
-        `);
-      }
+  if (history.length === 0) {
+    // Veri yoksa boş grafik şablonu
+    myChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Veri Yok'],
+        datasets: [{ label: 'Çözülen Soru Yok', data: [0], backgroundColor: '#334155' }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
     });
-  });
-
-  activeSet.completed = true;
-  localStorage.setItem("yds_question_sets", JSON.stringify(allSets));
-
-  const m = Math.floor(secondsPassed / 60);
-  const s = secondsPassed % 60;
-  const timeFormatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-  saveExamSession({
-    timestamp: new Date().getTime(),
-    date: activeSet.date,
-    topic: activeSet.topic,
-    correct, wrong, empty,
-    seconds: secondsPassed,
-    timeSpent: timeFormatted
-  });
-
-  document.getElementById("rep-correct").innerText = correct;
-  document.getElementById("rep-wrong").innerText = wrong;
-  document.getElementById("rep-empty").innerText = empty;
-  document.getElementById("rep-time").innerText = timeFormatted;
-  document.getElementById("wrong-answers-list").innerHTML = wrongListHTML.length > 0 ? wrongListHTML.join('') : "<p>Harika! Hiç yanlışınız yok.</p>";
-
-  secondsPassed = 0;
-  userAnswers = {};
-  
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('report-screen').classList.add('active');
-}
-
-function nextQuestion() {
-  const activeSet = allSets[currentSetIndex];
-  const currentArticle = activeSet.articles[currentArticleIndex];
-
-  if (currentQuestionIndex < currentArticle.questions.length - 1) {
-    currentQuestionIndex++;
-  } else if (currentArticleIndex < activeSet.articles.length - 1) {
-    currentArticleIndex++;
-    currentQuestionIndex = 0;
-  } else {
-    finishExam();
     return;
   }
-  loadState();
-}
 
-function prevQuestion() {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-  } else if (currentArticleIndex > 0) {
-    currentArticleIndex--;
-    const prevArticle = allSets[currentSetIndex].articles[currentArticleIndex];
-    currentQuestionIndex = prevArticle.questions.length - 1;
+  if (mode === 'weekly') {
+    // Son 7 sınavın doğru ve yanlış sayıları grafiği
+    const recent = history.slice(-7);
+    const labels = recent.map((h, i) => `Sınav ${i + 1} (${h.topic.substring(0, 10)}...)`);
+    const corrects = recent.map(h => h.correct);
+    const wrongs = recent.map(h => h.wrong);
+
+    myChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Doğru',
+            data: corrects,
+            backgroundColor: '#10b981',
+            borderRadius: 6
+          },
+          {
+            label: 'Yanlış',
+            data: wrongs,
+            backgroundColor: '#ef4444',
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#f8fafc' } }
+        },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+          y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+        }
+      }
+    });
+  } else {
+    // Genel Başarı Oranı (Pasta Grafik)
+    let totalCorrect = history.reduce((acc, curr) => acc + curr.correct, 0);
+    let totalWrong = history.reduce((acc, curr) => acc + curr.wrong, 0);
+    let totalEmpty = history.reduce((acc, curr) => acc + curr.empty, 0);
+
+    myChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Doğru', 'Yanlış', 'Boş'],
+        datasets: [{
+          data: [totalCorrect, totalWrong, totalEmpty],
+          backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#f8fafc' } }
+        }
+      }
+    });
   }
-  loadState();
 }

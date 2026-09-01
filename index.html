@@ -4,11 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>YDS Fransızca - Çalışma Portalı</title>
-  <!-- EmailJS SDK -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Chart.js Kütüphanesi -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="text/javascript">
      (function(){
@@ -133,7 +130,6 @@
 </head>
 <body>
 
-  <!-- 0. GİRİŞ EKRANI -->
   <div id="login-screen" class="screen active">
     <div class="login-box">
       <h2>🇫🇷 YDS Fransızca</h2>
@@ -144,7 +140,6 @@
     <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
   </div>
 
-  <!-- 1. ANA MENÜ -->
   <div id="main-menu" class="screen">
     <div>
       <h1>🇫🇷 YDS Fransızca Portalı</h1>
@@ -167,7 +162,6 @@
     <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>
   </div>
 
-  <!-- 1.1 KONU SEÇİM EKRANI -->
   <div id="set-select-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -181,7 +175,6 @@
     </div>
   </div>
 
-  <!-- 1.2 GÜNLÜK HATIRLATICI E-POSTA AYAR EKRANI -->
   <div id="reminder-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 550px;">
       <div>
@@ -212,7 +205,6 @@
     </div>
   </div>
 
-  <!-- 2. KELİME DEFTERİ MENÜ EKRANI -->
   <div id="vocab-menu-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 600px;">
       <div>
@@ -234,7 +226,6 @@
     </div>
   </div>
 
-  <!-- 2.1 YENİ KELİME EKLEME EKRANI -->
   <div id="vocab-add-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 600px;">
       <div>
@@ -269,7 +260,6 @@
     </div>
   </div>
 
-  <!-- 2.2 KELİME TEKRAR EKRANI -->
   <div id="vocab-study-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 600px; text-align: center;">
       <div>
@@ -299,7 +289,6 @@
     </div>
   </div>
 
-  <!-- 3. YÖNETİCİ PANELİ -->
   <div id="upload-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 650px;">
       <div>
@@ -319,7 +308,6 @@
     </div>
   </div>
 
-  <!-- 3.1 YÖNETİCİ SORU SETİ EKLEME EKRANI -->
   <div id="admin-add-set-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 650px;">
       <div>
@@ -327,26 +315,33 @@
           <h2>➕ Buluta Yeni Soru Seti Ekle</h2>
           <button class="btn btn-secondary" style="padding:5px 10px; font-size:12px;" onclick="showScreen('upload-screen')">⬅️ Geri</button>
         </div>
-        <p style="font-size:13px; color:#94a3b8; margin-bottom:15px;">Buradan ekleyeceğin setler doğrudan Supabase veritabanına kaydedilir ve tüm cihazlarda anında görünür.</p>
+        <p style="font-size:13px; color:#94a3b8; margin-bottom:15px;">Aşağıdaki alanlara bilgileri girerek doğrudan Supabase veritabanına kaydedebilirsin.</p>
 
-        <div style="margin: 10px 0;">
+        <div style="margin: 12px 0;">
           <label style="font-size:13px; color:#94a3b8;">Konu / Başlık:</label>
-          <input type="text" id="admin-set-topic" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Temel Bağlaçlar">
+          <input type="text" id="admin-set-topic" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: YDS Fransızca - Bağlaç Denemesi 1">
         </div>
 
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Metin Başlığı (Article Title):</label>
-          <input type="text" id="admin-article-title" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: Les Avantages de la Technologie">
+        <div style="margin: 12px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Tarih:</label>
+          <input type="date" id="admin-set-date" style="width:100%; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;">
         </div>
 
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Fransızca Metin (Article Text):</label>
-          <textarea id="admin-article-text" style="width:100%; height:90px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Paragraf metnini buraya yapıştır..."></textarea>
-        </div>
-
-        <div style="margin: 10px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Sorular ve Seçenekler (JSON formatında veya JSON yapıştırıcı):</label>
-          <textarea id="admin-questions-json" style="width:100%; height:120px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; font-family:monospace; font-size:12px;" placeholder='[{"question": "Soru metni?", "options": {"a": "Seçenek A", "b": "Seçenek B", "c": "Seçenek C", "d": "Seçenek D"}, "correct": "b", "explanation": "Açıklama"}]'></textarea>
+        <div style="margin: 12px 0;">
+          <label style="font-size:13px; color:#94a3b8;">Sorular ve Seçenekler (JSON Kodu):</label>
+          <textarea id="admin-questions-json" style="width:100%; height:200px; padding:10px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px; font-family:monospace; font-size:12px;" placeholder='[
+  {
+    "question": "Soru metni buraya gelecek?",
+    "options": {
+      "a": "Seçenek A",
+      "b": "Seçenek B",
+      "c": "Seçenek C",
+      "d": "Seçenek D"
+    },
+    "correct": "b",
+    "explanation": "Doğru cevabın açıklaması buraya yazılır."
+  }
+]'></textarea>
         </div>
 
         <div style="display:flex; gap:10px; margin-top:20px;">
@@ -357,7 +352,6 @@
     </div>
   </div>
 
-  <!-- 3.2 İÇERİK YÖNETİMİ -->
   <div id="admin-manage-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 650px;">
       <div>
@@ -374,7 +368,6 @@
     </div>
   </div>
 
-  <!-- 4. TEST ÇÖZME EKRANI -->
   <div id="quiz-screen" class="screen">
     <div id="top-bar">
       <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="showScreen('set-select-screen')">⬅️ Konular</button>
@@ -418,7 +411,6 @@
     </div>
   </div>
 
-  <!-- 5. SINAV SONU RAPORU -->
   <div id="report-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -437,7 +429,6 @@
     </div>
   </div>
 
-  <!-- 6. GEÇMİŞ OTURUMLAR -->
   <div id="history-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>
@@ -449,7 +440,6 @@
     </div>
   </div>
 
-  <!-- 7. İLERLEME ANALİZİ -->
   <div id="analytics-screen" class="screen" style="padding: 15px;">
     <div class="container">
       <div>

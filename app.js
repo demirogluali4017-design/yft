@@ -1,4 +1,9 @@
-// --- UYGULAMA MANTIĞI & ORTAK SORU HAVUZU ENTEGRASYONU ---
+// --- SUPABASE & UYGULAMA MANTIĞI ---
+
+// Supabase Bağlantı Bilgileri (Kendi Supabase panelinden aldığın bilgileri buraya yazmalısın)
+const SUPABASE_URL = "https://fcqppdjmvvkqrnwmrlhr.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "sb_publishable_vXsVr3iPRsm8-u-L0HpPwA_GRwXVFpX";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentScreen = 'login-screen';
 let currentUser = localStorage.getItem("yds_current_user") || "";
@@ -85,6 +90,120 @@ function checkAdminAccess() {
   }
 }
 
+// --- BULUT (SUPABASE) SORU YÖNETİMİ ---
+
+async function handleSaveCloudSet() {
+  const topic = document.getElementById("admin-set-topic").value.trim();
+  const articleTitle = document.getElementById("admin-article-title").value.trim();
+  const articleText = document.getElementById("admin-article-text").value.trim();
+  const questionsJsonStr = document.getElementById("admin-questions-json").value.trim();
+
+  if (!topic || !articleTitle || !articleText || !questionsJsonStr) {
+    alert("⚠️ Lütfen tüm alanları doldurun!");
+    return;
+  }
+
+  let questionsParsed;
+  try {
+    questionsParsed = JSON.parse(questionsJsonStr);
+  } catch (e) {
+    alert("❌ Sorular JSON formatında hatalı! Lütfen geçerli bir JSON yapısı girin.");
+    return;
+  }
+
+  const newSetData = {
+    id: "set_" + Date.now(),
+    topic: topic,
+    date: new Date().toISOString().split('T')[0],
+    article_title: articleTitle,
+    article_text: articleText,
+    questions_json: questionsParsed
+  };
+
+  const { data, error } = await supabaseClient
+    .from('questions')
+    .insert([newSetData]);
+
+  if (error) {
+    alert("❌ Buluta kaydedilemedi: " + error.message);
+  } else {
+    alert("✅ Soru seti başarıyla buluta kaydedildi ve tüm cihazlar için aktifleşti!");
+    document.getElementById("admin-set-topic").value = "";
+    document.getElementById("admin-article-title").value = "";
+    document.getElementById("admin-article-text").value = "";
+    document.getElementById("admin-questions-json").value = "";
+    showScreen('upload-screen');
+  }
+}
+
+async function openSetSelection() {
+  const container = document.getElementById("set-list-container");
+  container.innerHTML = "<div style='text-align:center; padding:20px; color:#38bdf8;'>Buluttan soru setleri yükleniyor...</div>";
+  showScreen('set-select-screen');
+
+  const { data: rawSets, error } = await supabaseClient
+    .from('questions')
+    .select('*');
+
+  if (error) {
+    container.innerHTML = "<div style='text-align:center; padding:20px; color:#ef4444;'>Soru setleri yüklenirken hata oluştu: " + error.message + "</div>";
+    return;
+  }
+
+  if (!rawSets || rawSets.length === 0) {
+    container.innerHTML = "<div style='text-align:center; padding:20px; color:#94a3b8;'>Bulutta soru seti bulunmuyor.</div>";
+    return;
+  }
+
+  let html = "";
+  rawSets.forEach((set) => {
+    const displayName = set.topic || set.article_title;
+    const qCount = set.questions_json ? set.questions_json.length : 0;
+    html += `
+      <div class="set-item-card" onclick="startExamSet('${set.id}')">
+        <div>
+          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${displayName}</h3>
+          <p style="font-size:12px; color:#94a3b8;">${qCount} Soru</p>
+        </div>
+        <button class="btn btn-primary" style="font-size:12px; padding:6px 12px;">Çöz ➔</button>
+      </div>
+    `;
+  });
+  container.innerHTML = html;
+}
+
+async function startExamSet(setId) {
+  const { data: rawSets, error } = await supabaseClient
+    .from('questions')
+    .select('*');
+
+  if (error || !rawSets) {
+    alert("⚠️ Soru seti verileri alınamadı!");
+    return;
+  }
+
+  const selectedSet = rawSets.find(s => s.id === setId);
+  if (!selectedSet) {
+    alert("⚠️ Seçilen soru seti bulunamadı!");
+    return;
+  }
+
+  currentExamTopic = selectedSet.topic || "Deneme";
+  currentExamDate = selectedSet.date || new Date().toISOString().split('T')[0];
+  activeQuestions = selectedSet.questions_json || [];
+  currentQuestionIndex = 0;
+  userAnswers = {};
+
+  document.getElementById("article-title").innerText = selectedSet.article_title || "Metin";
+  document.getElementById("article-text").innerText = selectedSet.article_text || "";
+  document.getElementById("article-number").innerText = currentExamTopic;
+
+  secondsElapsed = 0;
+  isTimerPaused = false;
+  showScreen('quiz-screen');
+  loadQuestion();
+}
+
 // --- E-POSTA HATIRLATICI FONKSİYONLARI ---
 
 function openReminderScreen() {
@@ -122,7 +241,8 @@ function sendTestReminderEmail() {
   const templateParams = {
     to_email: email,
     to_name: currentUser,
-    message: "Bonjour! YDS Fransızca hedeflerine ulaşmak için bugün en az 1 soru seti çözmeyi unutma. Başarılar!"
+    from_name: "YDS Fransızca Asistanı",
+    message: "Bonjour " + currentUser + "! Paris'in en güzel kafesinde kahveni yudumluyormuş gibi hayal et, ama önce o YDS Fransızca netlerini yukarı çekmemiz lazım. Bugün küçük bir adım, yarın büyük bir zafer demektir. Masaya oturma vakti!"
   };
 
   emailjs.send("service_snh9thi", "template_2n21pgo", templateParams)
@@ -142,6 +262,7 @@ function checkDailyReminderTrigger() {
     const templateParams = {
       to_email: reminderData.email,
       to_name: currentUser,
+      from_name: "YDS Fransızca Asistanı",
       message: "Günlük YDS Fransızca çalışma vaktin geldi! Bugün portala girip pratik yapmayı ihmal etme."
     };
 
@@ -266,31 +387,35 @@ function nextFlashcard(status) {
   }
 }
 
-function openAdminManager(type) {
+async function openAdminManager(type) {
   const listContainer = document.getElementById("admin-manager-list");
   const titleEl = document.getElementById("admin-manager-title");
   showScreen('admin-manage-screen');
 
   if (type === 'sets') {
-    titleEl.innerText = "📥 Yüklenen Soru Setlerini Yönet / Sil";
-    const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-    if (customSets.length === 0) {
-      listContainer.innerHTML = "<p style='text-align:center; color:#94a3b8; font-size:13px; padding:15px;'>Kayıtlı özel soru seti bulunmuyor.</p>";
+    titleEl.innerText = "📝 Buluttaki Soru Setlerini Yönet / Sil";
+    listContainer.innerHTML = "<p style='text-align:center; color:#38bdf8; padding:15px;'>Yükleniyor...</p>";
+
+    const { data: rawSets, error } = await supabaseClient
+      .from('questions')
+      .select('*');
+
+    if (error || !rawSets || rawSets.length === 0) {
+      listContainer.innerHTML = "<p style='text-align:center; color:#94a3b8; font-size:13px; padding:15px;'>Bulutta soru seti bulunmuyor.</p>";
       return;
     }
+
     let html = "";
-    customSets.forEach((set) => {
-      const setDisplayName = set.topic || set.articleTitle || "İsimsiz Set";
+    rawSets.forEach((set) => {
       html += `
         <div style="background:#1e293b; border:1px solid #334155; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <strong style="color:#38bdf8; font-size:14px;">${setDisplayName}</strong>
-          </div>
-          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteCustomSet('${set.id}')">Sil</button>
+          <div><strong style="color:#38bdf8; font-size:14px;">${set.topic || set.article_title}</strong></div>
+          <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="deleteCloudSet('${set.id}')">Sil</button>
         </div>
       `;
     });
     listContainer.innerHTML = html;
+
   } else if (type === 'vocab') {
     titleEl.innerText = "📚 Kayıtlı Kelimeleri Yönet / Sil";
     const vocabKey = `yds_vocab_${currentUser}`;
@@ -312,12 +437,19 @@ function openAdminManager(type) {
   }
 }
 
-function deleteCustomSet(setId) {
-  if (!confirm("Bu soru setini silmek istediğine emin misin?")) return;
-  let customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  customSets = customSets.filter(s => s.id !== setId);
-  localStorage.setItem("yds_custom_sets", JSON.stringify(customSets));
-  openAdminManager('sets');
+async function deleteCloudSet(setId) {
+  if (!confirm("Bu soru setini buluttan kalıcı olarak silmek istediğine emin misin?")) return;
+  const { error } = await supabaseClient
+    .from('questions')
+    .delete()
+    .eq('id', setId);
+
+  if (error) {
+    alert("❌ Silinemedi: " + error.message);
+  } else {
+    alert("✅ Soru seti buluttan silindi.");
+    openAdminManager('sets');
+  }
 }
 
 function deleteAdminVocab(vocabId) {
@@ -327,134 +459,6 @@ function deleteAdminVocab(vocabId) {
   vocabList = vocabList.filter(v => v.id !== vocabId);
   localStorage.setItem(vocabKey, JSON.stringify(vocabList));
   openAdminManager('vocab');
-}
-
-function handleSaveJSONSet() {
-  const password = document.getElementById("admin-password").value.trim();
-  if (password !== "258025") {
-    alert("❌ Hatalı şifre!");
-    return;
-  }
-  const jsonRaw = document.getElementById("admin-json-input").value.trim();
-  let parsedData;
-  try {
-    parsedData = JSON.parse(jsonRaw);
-  } catch (error) {
-    alert("❌ Geçersiz JSON formatı!");
-    return;
-  }
-  let setsArray = Array.isArray(parsedData) ? parsedData : [parsedData];
-  let customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  
-  setsArray.forEach((item, index) => {
-    if (item && (item.articleText || item.questions)) {
-      customSets.push({
-        id: "set_" + Date.now() + "_" + index,
-        topic: (item.topic && item.topic !== "undefined") ? item.topic : ((item.articleTitle && item.articleTitle !== "undefined") ? item.articleTitle : `Set ${customSets.length + 1}`),
-        date: item.date || new Date().toISOString().split('T')[0],
-        articleTitle: (item.articleTitle && item.articleTitle !== "undefined") ? item.articleTitle : "Paragraf",
-        articleText: item.articleText || "",
-        questions: item.questions || []
-      });
-    }
-  });
-
-  localStorage.setItem("yds_custom_sets", JSON.stringify(customSets));
-  alert("✅ Soru setleri eklendi ve tüm kullanıcılar için ortak hale getirildi!");
-  showScreen('upload-screen');
-}
-
-function openSetSelection() {
-  const container = document.getElementById("set-list-container");
-  let rawSets = [];
-  
-  // 1. questionsData.js dosyasından gelen statik setler
-  for (let key in window) {
-    try {
-      const val = window[key];
-      if (Array.isArray(val)) {
-        val.forEach((item, idx) => {
-          if (item && (item.questions || item.articleText)) {
-            if (!item.id) item.id = `auto_${key}_${idx}`;
-            if (!rawSets.some(s => s.id === item.id)) rawSets.push(item);
-          }
-        });
-      }
-    } catch (e) {}
-  }
-
-  // 2. Yönetici panelinden eklenen ortak setler
-  const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  rawSets = rawSets.concat(customSets);
-
-  // 3. 'undefined' veya boş olan setleri filtreleyerek tamamen temizle
-  let allSets = rawSets.filter(set => {
-    if (!set) return false;
-    const titleVal = set.topic || set.articleTitle;
-    if (!titleVal || titleVal === "undefined" || titleVal.trim() === "") return false;
-    return true;
-  });
-
-  if (allSets.length === 0) {
-    container.innerHTML = "<div style='text-align:center; padding:20px; color:#94a3b8;'>Soru seti bulunmuyor.</div>";
-    showScreen('set-select-screen');
-    return;
-  }
-
-  let html = "";
-  allSets.forEach((set) => {
-    const displayName = set.topic || set.articleTitle;
-    html += `
-      <div class="set-item-card" onclick="startExamSet('${set.id}')">
-        <div>
-          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${displayName}</h3>
-          <p style="font-size:12px; color:#94a3b8;">${set.questions ? set.questions.length : 0} Soru</p>
-        </div>
-        <button class="btn btn-primary" style="font-size:12px; padding:6px 12px;">Çöz ➔</button>
-      </div>
-    `;
-  });
-  container.innerHTML = html;
-  showScreen('set-select-screen');
-}
-
-function startExamSet(setId) {
-  let allSets = [];
-  for (let key in window) {
-    try {
-      const val = window[key];
-      if (Array.isArray(val)) {
-        val.forEach((item, idx) => {
-          if (item && (item.questions || item.articleText)) {
-            if (!item.id) item.id = `auto_${key}_${idx}`;
-            if (!allSets.some(s => s.id === item.id)) allSets.push(item);
-          }
-        });
-      }
-    } catch (e) {}
-  }
-  allSets = allSets.concat(JSON.parse(localStorage.getItem("yds_custom_sets")) || []);
-  const selectedSet = allSets.find(s => s.id === setId);
-
-  if (!selectedSet) {
-    alert("⚠️ Seçilen soru seti bulunamadı!");
-    return;
-  }
-
-  currentExamTopic = (selectedSet.topic && selectedSet.topic !== "undefined") ? selectedSet.topic : "Deneme";
-  currentExamDate = selectedSet.date || new Date().toISOString().split('T')[0];
-  activeQuestions = selectedSet.questions || [];
-  currentQuestionIndex = 0;
-  userAnswers = {};
-
-  document.getElementById("article-title").innerText = (selectedSet.articleTitle && selectedSet.articleTitle !== "undefined") ? selectedSet.articleTitle : "Metin";
-  document.getElementById("article-text").innerText = selectedSet.articleText || "";
-  document.getElementById("article-number").innerText = currentExamTopic;
-
-  secondsElapsed = 0;
-  isTimerPaused = false;
-  showScreen('quiz-screen');
-  loadQuestion();
 }
 
 function loadQuestion() {

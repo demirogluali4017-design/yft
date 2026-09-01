@@ -68,15 +68,13 @@ function confirmResetUserData() {
 function checkAdminAccess() {
   const pass = prompt("Yönetici şifresini girin:");
   if (pass === "258025") {
-    // Bugünün tarihini otomatik doldur
-    document.getElementById("upload-date").value = new Date().toISOString().split('T')[0];
     showScreen('upload-screen');
   } else if (pass !== null) {
     alert("❌ Hatalı şifre!");
   }
 }
 
-// Tam JSON Kodunu Okuyup Kaydeden Fonksiyon
+// Çoklu Veya Tekli JSON Kodunu Okuyup Kaydeden Fonksiyon
 function handleSaveJSONSet() {
   const password = document.getElementById("admin-password").value.trim();
   if (password !== "258025") {
@@ -84,10 +82,7 @@ function handleSaveJSONSet() {
     return;
   }
 
-  const topic = document.getElementById("upload-topic").value.trim() || "YDS Fransızca Deneme";
-  const date = document.getElementById("upload-date").value || new Date().toISOString().split('T')[0];
   const jsonRaw = document.getElementById("admin-json-input").value.trim();
-
   if (!jsonRaw) {
     alert("⚠️ Lütfen JSON kodunu yapıştırın!");
     return;
@@ -101,31 +96,49 @@ function handleSaveJSONSet() {
     return;
   }
 
-  // Makale metni ve soruların varlığını doğrula
-  if (!parsedData.articleText || !parsedData.questions || !Array.isArray(parsedData.questions)) {
-    alert("⚠️ JSON yapısı eksik! İçerisinde 'articleText' ve 'questions' dizisi olmalıdır.");
+  let setsArray = [];
+  if (Array.isArray(parsedData)) {
+    setsArray = parsedData;
+  } else if (typeof parsedData === 'object' && parsedData !== null) {
+    setsArray = [parsedData];
+  } else {
+    alert("❌ Geçersiz JSON yapısı!");
     return;
   }
 
-  const newArticleSet = {
-    id: "set_" + Date.now(),
-    topic: topic,
-    date: date,
-    articleTitle: parsedData.articleTitle || "YDS Paragraf Soruları",
-    articleText: parsedData.articleText,
-    questions: parsedData.questions
-  };
-
   let customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
-  customSets.push(newArticleSet);
+  let addedCount = 0;
+
+  setsArray.forEach((item, index) => {
+    if (!item.articleText || !item.questions || !Array.isArray(item.questions)) {
+      console.warn(`Set ${index + 1} atlandı çünkü 'articleText' veya 'questions' eksik.`);
+      return;
+    }
+
+    const newArticleSet = {
+      id: "set_" + Date.now() + "_" + index,
+      topic: item.topic || item.articleTitle || `YDS Fransızca Set ${customSets.length + addedCount + 1}`,
+      date: item.date || new Date().toISOString().split('T')[0],
+      articleTitle: item.articleTitle || "YDS Paragraf Soruları",
+      articleText: item.articleText,
+      questions: item.questions
+    };
+
+    customSets.push(newArticleSet);
+    addedCount++;
+  });
+
+  if (addedCount === 0) {
+    alert("⚠️ Hiçbir geçerli soru seti eklenemedi! JSON yapısını kontrol edin.");
+    return;
+  }
+
   localStorage.setItem("yds_custom_sets", JSON.stringify(customSets));
 
-  alert(`✅ Başarıyla ${parsedData.questions.length} soruluk set sisteme kaydedildi!`);
+  alert(`✅ Başarıyla ${addedCount} adet yeni makale/soru seti sisteme eklendi!`);
   
-  // Kutuları temizle
   document.getElementById("admin-json-input").value = "";
   document.getElementById("admin-password").value = "";
-  document.getElementById("upload-topic").value = "";
   
   showScreen('main-menu');
 }
@@ -134,12 +147,21 @@ function openSetSelection() {
   const container = document.getElementById("set-list-container");
   let allSets = [];
   
-  // questionsData.js'den gelen varsayılan setler varsa ekle
-  if (typeof defaultQuestionSets !== 'undefined') {
+  // 1. questionsData.js dosyasındaki tüm setleri güvenli şekilde topla (İster değişken ister dizi olsun)
+  if (typeof defaultQuestionSets !== 'undefined' && Array.isArray(defaultQuestionSets)) {
     allSets = allSets.concat(defaultQuestionSets);
+  } else {
+    // Eğer questionsData içinde başka bir değişken adı veya doğrudan setler tanımlandıysa onları da yakala
+    for (let key in window) {
+      if (key.includes("Set") || key.includes("Question") || key.includes("yds")) {
+        if (Array.isArray(window[key]) && window[key] !== allSets && window[key].length > 0 && window[key][0].articleText) {
+          allSets = allSets.concat(window[key]);
+        }
+      }
+    }
   }
   
-  // LocalStorage'dan özel yüklenen setleri al
+  // 2. LocalStorage'dan özel yüklenen setleri ekle
   const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
   allSets = allSets.concat(customSets);
   
@@ -149,13 +171,20 @@ function openSetSelection() {
     return;
   }
   
+  // 🔄 Tarihe göre sıralama (En yeni tarih en üstte görünür)
+  allSets.sort((a, b) => {
+    const dateA = new Date(a.date || '2026-01-01');
+    const dateB = new Date(b.date || '2026-01-01');
+    return dateB - dateA;
+  });
+  
   let html = "";
   allSets.forEach((set) => {
     html += `
       <div class="set-item-card" onclick="startExamSet('${set.id}')">
         <div>
-          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${set.topic}</h3>
-          <p style="font-size:12px; color:#94a3b8;">${set.articleTitle || 'Paragraf Soruları'} (${set.questions.length} Soru)</p>
+          <h3 style="color:#38bdf8; font-size:15px; margin-bottom:4px;">${set.topic || set.articleTitle || 'İsimsiz Set'}</h3>
+          <p style="font-size:12px; color:#94a3b8;">${set.articleTitle || 'Paragraf Soruları'} (${set.questions.length} Soru) • <span style="color:#10b981;">${set.date || ''}</span></p>
         </div>
         <button class="btn btn-primary" style="font-size:12px; padding:6px 12px;">Çöz ➔</button>
       </div>
@@ -168,7 +197,9 @@ function openSetSelection() {
 
 function startExamSet(setId) {
   let allSets = [];
-  if (typeof defaultQuestionSets !== 'undefined') allSets = allSets.concat(defaultQuestionSets);
+  if (typeof defaultQuestionSets !== 'undefined' && Array.isArray(defaultQuestionSets)) {
+    allSets = allSets.concat(defaultQuestionSets);
+  }
   const customSets = JSON.parse(localStorage.getItem("yds_custom_sets")) || [];
   allSets = allSets.concat(customSets);
   
@@ -178,16 +209,15 @@ function startExamSet(setId) {
     return;
   }
   
-  currentExamTopic = selectedSet.topic;
+  currentExamTopic = selectedSet.topic || selectedSet.articleTitle || "Deneme";
   currentExamDate = selectedSet.date || new Date().toISOString().split('T')[0];
   activeQuestions = selectedSet.questions;
   currentQuestionIndex = 0;
   userAnswers = {};
   
-  // Makale bilgilerini yerleştir
   document.getElementById("article-title").innerText = selectedSet.articleTitle || "Metin";
   document.getElementById("article-text").innerText = selectedSet.articleText || "";
-  document.getElementById("article-number").innerText = selectedSet.topic;
+  document.getElementById("article-number").innerText = currentExamTopic;
   
   secondsElapsed = 0;
   isTimerPaused = false;
@@ -204,7 +234,7 @@ function loadQuestion() {
   document.getElementById("question-title").innerText = q.question;
   
   let optHtml = "";
-  const optionsMap = q.options; // {a: "...", b: "..."}
+  const optionsMap = q.options;
   for (const [key, val] of Object.entries(optionsMap)) {
     const upperKey = key.toUpperCase();
     const isSelected = userAnswers[currentQuestionIndex] === upperKey ? "selected" : "";
@@ -213,7 +243,6 @@ function loadQuestion() {
   
   document.getElementById("options-group").innerHTML = optHtml;
   
-  // Açıklama gizle/sıfırla
   const expBox = document.getElementById("explanation-box");
   expBox.style.display = "none";
   expBox.innerText = q.explanation || "Açıklama bulunmuyor.";
@@ -305,7 +334,6 @@ function finishExam() {
   const secs = (secondsElapsed % 60).toString().padStart(2, '0');
   const timeFormatted = `${mins}:${secs}`;
   
-  // Sonucu localStorage geçmişine kaydet
   const historyKey = `yds_history_${currentUser}`;
   let historyList = JSON.parse(localStorage.getItem(historyKey)) || [];
   
@@ -323,7 +351,6 @@ function finishExam() {
   historyList.push(examResult);
   localStorage.setItem(historyKey, JSON.stringify(historyList));
   
-  // Rapor ekranını doldur
   document.getElementById("rep-correct").innerText = correct;
   document.getElementById("rep-wrong").innerText = wrong;
   document.getElementById("rep-empty").innerText = empty;

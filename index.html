@@ -185,45 +185,38 @@
   <div id="upload-screen" class="screen" style="padding: 15px;">
     <div class="container" style="max-width: 650px;">
       <div>
-        <h2>🔑 Yönetici JSON Soru Yükleme Paneli</h2>
-        <p style="font-size:12px; color:#38bdf8; margin-bottom:12px;">Yapay zekadan aldığın tam JSON kodunu buraya yapıştırarak seti anında ekle.</p>
+        <h2>🔑 Yönetici Toplu JSON Soru Yükleme Paneli</h2>
+        <p style="font-size:12px; color:#38bdf8; margin-bottom:12px;">Tek bir JSON içerisinde ister tek, ister **birden fazla makale setini** liste halinde yapıştırıp topluca ekleyebilirsin.</p>
         
         <div style="margin: 8px 0;">
-  <label style="font-size:13px; color:#94a3b8;">Yönetici Şifresi:</label>
-  <input type="password" id="admin-password" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="••••••">
-</div>
-
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin: 8px 0;">
-          <div>
-            <label style="font-size:13px; color:#94a3b8;">Konu / Deneme Başlığı:</label>
-            <input type="text" id="upload-topic" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="Örn: YDS Fransızca Deneme 1">
-          </div>
-          <div>
-            <label style="font-size:13px; color:#94a3b8;">Tarih:</label>
-            <input type="date" id="upload-date" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;">
-          </div>
+          <label style="font-size:13px; color:#94a3b8;">Yönetici Şifresi:</label>
+          <input type="password" id="admin-password" style="width:100%; padding:9px; background:#0f172a; border:1px solid #334155; color:white; border-radius:6px;" placeholder="••••••">
         </div>
 
         <div style="margin: 8px 0;">
-          <label style="font-size:13px; color:#94a3b8;">Tam JSON Kodu (Makale + Metin + Sorular):</label>
-          <textarea id="admin-json-input" style="width:100%; height:240px; padding:10px; background:#0f172a; border:1px solid #334155; color:#38bdf8; font-family:monospace; font-size:12px; border-radius:6px;" placeholder='{
-  "articleTitle": "Makale Başlığı",
-  "articleText": "Fransızca paragraf metni buraya...",
-  "questions": [
-    {
-      "id": 1,
-      "question": "Soru metni...",
-      "options": { "a": "...", "b": "...", "c": "...", "d": "...", "e": "..." },
-      "correct": "A",
-      "explanation": "Çözüm açıklaması..."
-    }
-  ]
-}'></textarea>
+          <label style="font-size:13px; color:#94a3b8;">Toplu JSON Kodları (Dizi [ ] veya Tekil Nesne { }):</label>
+          <textarea id="admin-json-input" style="width:100%; height:260px; padding:10px; background:#0f172a; border:1px solid #334155; color:#38bdf8; font-family:monospace; font-size:12px; border-radius:6px;" placeholder='[
+  {
+    "topic": "YDS Deneme 1",
+    "date": "2026-06-01",
+    "articleTitle": "Birinci Makale",
+    "articleText": "Metin...",
+    "questions": [
+      {
+        "id": 1,
+        "question": "Soru...",
+        "options": { "a": "...", "b": "...", "c": "...", "d": "...", "e": "..." },
+        "correct": "A",
+        "explanation": "Açıklama..."
+      }
+    ]
+  }
+]'></textarea>
         </div>
 
         <div style="display:flex; gap:10px; margin-top:15px;">
           <button class="btn btn-secondary" onclick="showScreen('main-menu')" style="flex:1;">🏠 Menü</button>
-          <button class="btn btn-primary" onclick="handleSaveJSONSet()" style="flex:2;">💾 JSON Setini Kaydet</button>
+          <button class="btn btn-primary" onclick="handleSaveJSONSet()" style="flex:2;">💾 Soru Setlerini Kaydet</button>
         </div>
       </div>
       <div class="app-footer">Conçu et développé par <span>Gnothi</span></div>

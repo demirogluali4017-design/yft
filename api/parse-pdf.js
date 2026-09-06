@@ -1,75 +1,56 @@
-import { GoogleGenAI, Type } from '@google/genai';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Yalnızca POST istekleri kabul edilir.' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Yalnızca POST kabul edilir.' });
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY Vercel üzerinde tanımlanmamış.' });
 
   try {
-    const { textChunk, imageBase64, action, questionData } = req.body;
+    const { pdfText } = req.body;
+    if (!pdfText) return res.status(400).json({ error: 'PDF metni bulunamadı.' });
 
-    // 1. Durum: Analiz Ekranında İsteğe Bağlı Tekil Çözüm Açıklaması Üretme
-    if (action === 'explain') {
-      const explainPrompt = `Aşağıdaki soru için Türkçe kısa, net ve anlaşılır bir çözüm açıklaması yaz:\n\nSoru: ${questionData.question}\nŞıklar: ${questionData.options.join(', ')}\nDoğru Cevap: ${questionData.correctAnswer}`;
-      
-      const expResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: explainPrompt
-      });
+    const prompt = `
+Aşağıdaki metindeki çoktan seçmeli soruları analiz et ve SADECE saf bir JSON dizisi döndür:
 
-      return res.status(200).json({ explanation: expResponse.text });
-    }
+[
+  {
+    "question": "Soru metni",
+    "options": ["A şıkkı", "B şıkkı", "C şıkkı", "D şıkkı"],
+    "correct": "A"
+  }
+]
 
-    // 2. Durum: Soru Ve Şıkları Ayrıştırma (Metin veya Görsel)
-    let contents = [];
-    
-    if (imageBase64) {
-      contents = [
-        {
-          inlineData: {
-            mimeType: 'image/jpeg',
-            data: imageBase64.split(',')[1] || imageBase64
-          }
-        },
-        'Bu görseldeki sınav sorularını, şıklarını ve doğru cevap anahtarını tespit et.'
-      ];
-    } else if (textChunk) {
-      contents = [`Aşağıdaki metindeki soruları, A-E şıklarını ve doğru cevap anahtarını tespit et:\n${textChunk}`];
-    } else {
-      return res.status(400).json({ error: 'İşlenecek veri bulunamadı.' });
-    }
+Metin:
+${pdfText.substring(0, 8000)}
+    `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: contents,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id: { type: Type.INTEGER },
-              question: { type: Type.STRING },
-              options: { type: Type.ARRAY, items: { type: Type.STRING } },
-              correctAnswer: { type: Type.STRING }
-            },
-            required: ['id', 'question', 'options', 'correctAnswer']
-          }
-        }
-      }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
     });
 
-    const parsedQuestions = JSON.parse(response.text);
-    return res.status(200).json(parsedQuestions);
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error("Gemini API Hatası:", data.error);
+      return res.status(500).json({ error: data.error.message });
+    }
+
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    const questions = JSON.parse(rawText);
+    return res.status(200).json({ questions });
 
   } catch (error) {
-    console.error("Gemini API İşlem Hatası:", error);
-    return res.status(500).json({ error: 'İşlem sırasında bir sunucu hatası oluştu.' });
+    console.error("API İşlem Hatası:", error);
+    return res.status(500).json({ error: 'İşlem sırasında sunucu hatası oluştu.' });
   }
 }

@@ -1,0 +1,52 @@
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+body { background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+.quiz-container { background: #ffffff; width: 100%; max-width: 700px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); padding: 30px; }
+.hidden { display: none !important; }
+
+.upload-desc { color: #5f6368; font-size: 14px; margin: 10px 0 20px 0; }
+.drop-zone { border: 2px dashed #1a73e8; background: #e8f0fe; border-radius: 12px; padding: 40px 20px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; color: #1a73e8; font-weight: 600; }
+.drop-zone:hover { background: #d2e3fc; }
+.file-icon { font-size: 36px; }
+.status-text { margin-top: 15px; font-size: 14px; color: #1557b0; text-align: center; font-weight: 500; }
+
+.edit-list-container { max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding-right: 5px; }
+.edit-item { border: 1px solid #dadce0; border-radius: 10px; padding: 15px; background: #f8f9fa; }
+.edit-item label { font-size: 12px; font-weight: bold; color: #5f6368; display: block; margin-top: 10px; }
+.edit-item input, .edit-item textarea { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #dadce0; border-radius: 6px; font-size: 14px; }
+
+.quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.badge { background-color: #e8f0fe; color: #1a73e8; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+#progress { color: #70757a; font-size: 14px; font-weight: 500; }
+.question-box { margin-bottom: 24px; }
+#question-text { font-size: 17px; line-height: 1.6; color: #202124; font-weight: 500; }
+.options-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px; }
+
+.option-btn { background: #f8f9fa; border: 2px solid #e8eaed; border-radius: 10px; padding: 14px 18px; text-align: left; font-size: 15px; color: #3c4043; cursor: pointer; transition: all 0.2s ease; }
+.option-btn:hover { background: #f1f3f4; border-color: #dadce0; }
+.option-btn.selected { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; font-weight: 600; }
+
+.quiz-footer { display: flex; justify-content: space-between; border-top: 1px solid #f1f3f4; padding-top: 20px; }
+.nav-btn { background-color: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nav-btn:hover { background-color: #1557b0; }
+.nav-btn:disabled { background-color: #dadce0; cursor: not-allowed; }
+
+.result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.score-badge { font-size: 20px; font-weight: bold; color: #1a73e8; background: #e8f0fe; padding: 8px 16px; border-radius: 12px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+.stat-card { padding: 15px; border-radius: 12px; text-align: center; }
+.stat-card.correct { background: #e6f4ea; color: #137333; }
+.stat-card.wrong { background: #fce8e6; color: #c5221f; }
+.stat-card.empty { background: #f1f3f4; color: #5f6368; }
+.stat-value { font-size: 22px; font-weight: bold; display: block; }
+.stat-label { font-size: 13px; font-weight: 500; }
+
+.analysis-container { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; }
+.analysis-item { border: 1px solid #e8eaed; border-radius: 10px; padding: 15px; font-size: 14px; }
+.analysis-item.is-correct { border-left: 5px solid #34a853; }
+.analysis-item.is-wrong { border-left: 5px solid #ea4335; }
+.analysis-item.is-empty { border-left: 5px solid #9aa0a6; }
+.analysis-q-text { font-weight: 600; margin-bottom: 8px; color: #202124; }
+.analysis-ans { font-size: 13px; line-height: 1.4; }
+.explanation-box { margin-top: 10px; padding: 10px 12px; background-color: #f8f9fa; border-radius: 8px; border-left: 3px solid #1a73e8; font-size: 13px; color: #3c4043; line-height: 1.5; }
+.explain-btn { background: #e8f0fe; color: #1a73e8; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+.restart-btn { width: 100%; margin-top: 10px; }

@@ -1,0 +1,8 @@
+{
+  "name": "pdf-quiz-gemini",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@google/genai": "^0.1.1"
+  }
+}

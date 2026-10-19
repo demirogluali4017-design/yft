@@ -24,8 +24,11 @@ export function yazdirBelge() {
 }
 
 export function Sened({
+  birlik,
+  kisi,
   zimmetler,
   gun,
+  veren,
   onClose,
 }: {
   birlik: string;
@@ -59,7 +62,7 @@ export function Sened({
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Teslim Alan Kısım/Birim:</td>
-              <td className="border border-black px-2 py-1" colSpan={4} />
+              <td className="border border-black px-2 py-1" colSpan={4}>{birlik}</td>
             </tr>
             <tr>
               <th colSpan={5} className="border border-black px-2 py-1 text-center font-semibold">
@@ -106,18 +109,18 @@ export function Sened({
             </tr>
             <tr>
               <td className="border border-black px-2">Adı ve Soyadı</td>
-              <td className="border border-black px-2" />
-              <td className="border border-black px-2" />
+              <td className="border border-black px-2 font-semibold">{veren?.adSoyad.toLocaleUpperCase("tr")}</td>
+              <td className="border border-black px-2 font-semibold">{kisi.adSoyad.toLocaleUpperCase("tr")}</td>
             </tr>
             <tr>
               <td className="border border-black px-2">Rütbesi</td>
-              <td className="border border-black px-2" />
-              <td className="border border-black px-2" />
+              <td className="border border-black px-2">{veren?.rutbe}</td>
+              <td className="border border-black px-2">{kisi.rutbe}</td>
             </tr>
             <tr>
               <td className="border border-black px-2">Görevi</td>
-              <td className="border border-black px-2" />
-              <td className="border border-black px-2" />
+              <td className="border border-black px-2">{veren?.gorev}</td>
+              <td className="border border-black px-2">{kisi.gorev}</td>
             </tr>
           </tbody>
         </table>

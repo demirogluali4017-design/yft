@@ -48,7 +48,7 @@ function Ozet() {
         <Sayi etiket="Zimmetli" deger={data.zimmetliAdet} />
         <Sayi etiket="Zimmetsiz" deger={data.musaitAdet} />
         <Sayi etiket="Açık zimmet" deger={data.aktifZimmet} />
-        <Sayi etiket="Dağıtılabilir" deger={data.dagitilabilir} />
+        <Sayi etiket="Kalan satır" deger={data.dagitilabilir} />
         <Sayi etiket="Beklemede" deger={data.beklemede} />
         <Sayi etiket="Arşiv" deger={data.arsiv} />
       </div>
@@ -78,7 +78,7 @@ function Hareketler({
   satirlar: Array<{ id: string; action: string; malzeme: string; personel: string; miktar: number; tarih: string }>;
   kendi?: boolean;
 }) {
-  const ad: Record<string, string> = { zimmet: "Çıkış", iade: "Giriş", duzenle: "Düzeltme" };
+  const ad: Record<string, string> = { zimmet: "Dağıtım", iade: "İade", duzenle: "Düzeltme" };
   return (
     <section className="mt-8">
       <h2 className="font-display text-2xl font-semibold tracking-wide">İşlem geçmişi</h2>

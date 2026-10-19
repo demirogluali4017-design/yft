@@ -9,8 +9,8 @@ import { hataMetni, tarih } from "@/lib/zimmet/labels";
 export const Route = createFileRoute("/gecmis")({ component: Page });
 
 const ISLEM: Record<string, string> = {
-  zimmet: "Çıkış",
-  iade: "Giriş",
+  zimmet: "Dağıtım",
+  iade: "İade",
   duzenle: "Düzeltme",
 };
 

@@ -53,8 +53,8 @@ function Ozet() {
         <Sayi etiket="Arşiv" deger={data.arsiv} />
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link to="/zimmet" className="inline-flex h-11 items-center bg-field px-4 text-sm font-semibold text-paper">Zimmet ver</Link>
-        <Link to="/envanter" className="inline-flex h-11 items-center border border-ink/15 px-4 text-sm font-semibold">Envanter</Link>
+        <Link to="/envanter" className="inline-flex h-11 items-center bg-field px-4 text-sm font-semibold text-paper">Envanter</Link>
+        <Link to="/zimmet" className="inline-flex h-11 items-center border border-ink/15 px-4 text-sm font-semibold">Zimmet belgesi</Link>
       </div>
 
       <Hareketler satirlar={data.hareketler} />

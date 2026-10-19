@@ -22,7 +22,7 @@ const SEKMELER = [
   ["ekle", "Zimmet ver"],
   ["cikar", "İade al"],
   ["belge", "Senet"],
-  ["bos", "Depoda"],
+  ["bos", "Zimmetsiz"],
 ] as const;
 
 function Page() {
@@ -70,7 +70,7 @@ function Zimmet() {
 
       {sekme === "ekle" ? (
         <section className="mt-6">
-          <p className="text-sm text-ink/60">Yalnızca dağıtılabilir, depoda adedi olan kalemler çıkar.</p>
+          <p className="text-sm text-ink/60">Yalnızca zimmetsiz adedi olan kalemler çıkar.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <Field label="Personel">
               <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
@@ -84,7 +84,7 @@ function Zimmet() {
               <Select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
                 <option value="">Seçin</option>
                 {saglam.map((m) => (
-                  <option key={m.id} value={m.id}>{m.ad} · müsait {m.musait}</option>
+                  <option key={m.id} value={m.id}>{m.ad} · zimmetsiz {m.musait}</option>
                 ))}
               </Select>
             </Field>
@@ -102,7 +102,7 @@ function Zimmet() {
             onClick={() => {
               const mal = saglam.find((m) => m.id === materialId);
               if (!mal) return toast.error("Malzeme seçin.");
-              if (miktar < 1 || miktar > mal.musait) return toast.error("Depodaki miktarı aşıyor.");
+              if (miktar < 1 || miktar > mal.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
               setSepet((s) => [...s, { materialId: mal.id, ad: mal.ad, miktar, notlar }]);
               setNotlar("");
             }}
@@ -224,7 +224,7 @@ function Zimmet() {
 
       {sekme === "bos" ? (
         <section className="mt-6">
-          <h2 className="font-display text-2xl font-semibold">Tamamı depoda</h2>
+          <h2 className="font-display text-2xl font-semibold">Tamamı zimmetsiz</h2>
           <p className="text-sm text-ink/60">Hiç ayrılmamış stok.</p>
           {tamamenBos.length === 0 ? <div className="mt-3"><Empty>Boşta malzeme yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
@@ -236,14 +236,14 @@ function Zimmet() {
               ))}
             </ul>
           )}
-          <h2 className="mt-8 font-display text-2xl font-semibold">Kısmen ayrılmış</h2>
-          <p className="text-sm text-ink/60">Bir kısmı personelde, kalan depoda.</p>
+          <h2 className="mt-8 font-display text-2xl font-semibold">Kısmen zimmetli</h2>
+          <p className="text-sm text-ink/60">Bir kısmı zimmetli, kalan zimmetsiz.</p>
           {kismenBos.length === 0 ? <div className="mt-3"><Empty>Kısmen boşta kalem yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
               {kismenBos.map((m) => (
                 <li key={m.id} className="flex justify-between gap-3 px-3 py-2">
                   <span>{m.ad}</span>
-                  <span className="tabular-nums text-ink/60">ayrılmış {m.zimmetli} · müsait {m.musait}</span>
+                  <span className="tabular-nums text-ink/60">zimmetli {m.zimmetli} · zimmetsiz {m.musait}</span>
                 </li>
               ))}
             </ul>

@@ -43,12 +43,12 @@ function Ozet() {
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Stok panosu</h1>
       <p className="mt-1 max-w-xl text-sm text-ink/60">
-        Eldeki miktar, personele ayrılan ve depoda kalan. Zimmet vermek çıkış, iade almak giriş kaydıdır.
+        Zimmet miktarı kayıtlı toplamdır. Zimmetli personelin üstündedir. Zimmetsiz henüz verilmemiştir.
       </p>
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Sayi etiket="Elde" deger={data.adet} />
-        <Sayi etiket="Ayrılmış" deger={data.zimmetliAdet} />
-        <Sayi etiket="Müsait" deger={data.musaitAdet} />
+        <Sayi etiket="Zimmet miktarı" deger={data.adet} />
+        <Sayi etiket="Zimmetli" deger={data.zimmetliAdet} />
+        <Sayi etiket="Zimmetsiz" deger={data.musaitAdet} />
         <Sayi etiket="Açık zimmet" deger={data.aktifZimmet} />
         <Sayi etiket="Dağıtılabilir" deger={data.dagitilabilir} />
         <Sayi etiket="Beklemede" deger={data.beklemede} />
@@ -62,13 +62,13 @@ function Ozet() {
 
       <section className="mt-8">
         <h2 className="font-display text-2xl font-semibold tracking-wide">Kritik stok</h2>
-        <p className="text-sm text-ink/60">Sağlam ama depoda adet kalmamış kalemler.</p>
+        <p className="text-sm text-ink/60">Sağlam ama zimmetsiz adet kalmamış kalemler.</p>
         {data.kritik.length === 0 ? <p className="mt-3 text-sm text-ink/60">Kritik kalem yok.</p> : (
           <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
             {data.kritik.map((m) => (
               <li key={m.id} className="flex items-baseline justify-between gap-3 px-3 py-2">
                 <Link to="/envanter/$id" params={{ id: m.id }} className="font-semibold hover:underline">{m.ad}</Link>
-                <span className="text-ink/60 tabular-nums">{m.stokNo} · elde {m.miktar} · ayrılmış {m.zimmetli}</span>
+                <span className="text-ink/60 tabular-nums">{m.stokNo} · zimmet miktarı {m.miktar} · zimmetli {m.zimmetli}</span>
               </li>
             ))}
           </ul>

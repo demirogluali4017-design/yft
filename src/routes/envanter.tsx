@@ -48,7 +48,7 @@ function Envanter() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-wide">Envanter</h1>
-          <p className="text-sm text-ink/60">{liste.data?.birlik} · elde, ayrılmış, müsait</p>
+          <p className="text-sm text-ink/60">{liste.data?.birlik} · zimmet miktarı, zimmetli, zimmetsiz</p>
         </div>
         <Button type="button" onClick={() => setAcik(true)}>Malzeme ekle</Button>
       </div>
@@ -75,9 +75,9 @@ function Envanter() {
               <th className="px-3 py-2 font-semibold">Malzeme</th>
               <th className="px-3 py-2 font-semibold">Konum</th>
               <th className="px-3 py-2 font-semibold">Durum</th>
-              <th className="px-3 py-2 text-right font-semibold">Elde</th>
-              <th className="px-3 py-2 text-right font-semibold">Ayrılmış</th>
-              <th className="px-3 py-2 text-right font-semibold">Müsait</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmet miktarı</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmetli</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmetsiz</th>
             </tr>
           </thead>
           <tbody>

@@ -859,7 +859,7 @@ export const assignZimmet = createServerFn({ method: "POST" })
       if (!mal[0] || mal[0].deleted_at) deny("Malzeme bulunamadı.");
       if (mal[0].durum !== "saglam") deny(`${mal[0].ad} zimmete uygun değil (${mal[0].durum}).`);
       const musait = num(mal[0].miktar) - num(mal[0].zimmetli);
-      if (satir.miktar > musait) deny(`${mal[0].ad} için depoda ${musait} ${mal[0].birim} var.`);
+      if (satir.miktar > musait) deny(`${mal[0].ad} için zimmetsiz ${musait} ${mal[0].birim} var.`);
     }
     for (const satir of data.lines) {
       const id = crypto.randomUUID();
@@ -897,7 +897,7 @@ export const updateAssignment = createServerFn({ method: "POST" })
     const mal = await sql.query<MatRow>(`${MATERIAL_SELECT} where m.id = $1 limit 1`, [kayit.material_id]);
     if (!mal[0]) deny("Malzeme bulunamadı.");
     const musait = num(mal[0].miktar) - num(mal[0].zimmetli) + num(kayit.miktar);
-    if (data.miktar > musait) deny("Depoda bu miktar yok.");
+    if (data.miktar > musait) deny("Zimmetsiz miktar yok.");
     await sql`
       update assignments set miktar = ${data.miktar}, notlar = ${data.notlar ?? ""} where id = ${data.id}
     `;

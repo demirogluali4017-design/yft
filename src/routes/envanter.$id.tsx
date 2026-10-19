@@ -41,9 +41,9 @@ function Detay({ id }: { id: string }) {
         <Bilgi ad="Kategori" deger={m.kategori} />
         <Bilgi ad="Seri" deger={m.seriNo || "—"} />
         <Bilgi ad="Konum" deger={m.konum || "—"} />
-        <Bilgi ad="Toplam" deger={`${m.miktar} ${m.birim}`} />
+        <Bilgi ad="Zimmet miktarı" deger={`${m.miktar} ${m.birim}`} />
         <Bilgi ad="Zimmetli" deger={String(m.zimmetli)} />
-        <Bilgi ad="Depoda" deger={String(m.musait)} />
+        <Bilgi ad="Zimmetsiz" deger={String(m.musait)} />
       </dl>
       {m.aciklama ? <p className="mt-4 text-sm text-ink/70">{m.aciklama}</p> : null}
       <h2 className="mt-8 font-display text-2xl font-semibold">Zimmetler</h2>

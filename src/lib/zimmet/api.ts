@@ -1039,37 +1039,41 @@ export const readDocument = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sql = await getSql();
     const actor = requireStaff(await loadActor(sql, context.userId), "belge");
-    const apiKey = process.env.XAI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) deny("Belge okuma bu ortamda kullanılamıyor.");
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "grok-4.5",
-        temperature: 0,
-        max_tokens: 900,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Türkçe el senedi ve envanter kâğıtlarından kalem çıkarırsın. Yalnızca JSON döndür. Uydurma.",
-          },
-          {
-            role: "user",
-            content: [
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },
+          systemInstruction: {
+            parts: [
               {
-                type: "text",
-                text: 'Fotoğraftaki malzemeleri şu şemada ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Okunamayan alanı boş bırak.',
+                text: "Türkçe el senedi ve envanter kâğıtlarından kalem çıkarırsın. Yalnızca JSON döndür. Uydurma.",
               },
-              { type: "image_url", image_url: { url: `data:${data.mime};base64,${data.image}` } },
             ],
           },
-        ],
-      }),
-    });
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: 'Fotoğraftaki malzemeleri şu şemada ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Okunamayan alanı boş bırak.',
+                },
+                { inline_data: { mime_type: data.mime, data: data.image } },
+              ],
+            },
+          ],
+        }),
+      },
+    );
     if (!res.ok) deny("Belge okunamadı. Fotoğrafı netleştirip yeniden deneyin.");
-    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = body.choices?.[0]?.message?.content ?? "";
+    const body = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+    const text = body.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
     const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
     let materials: KalemInput[] = [];
     try {

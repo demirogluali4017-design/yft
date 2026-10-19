@@ -954,7 +954,14 @@ export const getSened = createServerFn({ method: "POST" })
       `${ASSIGNMENT_SELECT} where a.personnel_id = $1 and a.durum = 'aktif' order by m.ad`,
       [id],
     )).map(toAssignment);
-    return { birlik: await birlikAdi(sql, actor), kisi, zimmetler, tarih: new Date().toISOString().slice(0, 10) };
+    let veren = { adSoyad: actor.adSoyad, rutbe: actor.rutbe, gorev: actor.gorev };
+    if (actor.role === "personel") {
+      const kom = await sql<{ ad_soyad: string; rutbe: string; gorev: string }>`
+        select ad_soyad, rutbe, gorev from profiles where role = 'komutan' limit 1
+      `;
+      if (kom[0]) veren = { adSoyad: kom[0].ad_soyad, rutbe: kom[0].rutbe, gorev: kom[0].gorev };
+    }
+    return { birlik: await birlikAdi(sql, actor), kisi, zimmetler, tarih: new Date().toISOString().slice(0, 10), veren };
   });
 
 function satirAyikla(text: string): KalemInput[] {

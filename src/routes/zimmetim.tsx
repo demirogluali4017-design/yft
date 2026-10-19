@@ -71,7 +71,7 @@ function Benim() {
         ))}
       </ul>
       {sened ? (
-        <Sened birlik={sened.birlik} kisi={sened.kisi} zimmetler={sened.zimmetler} gun={sened.tarih} onClose={() => setSened(null)} />
+        <Sened birlik={sened.birlik} kisi={sened.kisi} zimmetler={sened.zimmetler} gun={sened.tarih} veren={sened.veren} onClose={() => setSened(null)} />
       ) : null}
     </div>
   );

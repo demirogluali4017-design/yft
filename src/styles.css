@@ -39,4 +39,9 @@
   #zimmet-senedi {
     border: none;
   }
+  .sened-ekran {
+    position: static !important;
+    overflow: visible !important;
+    background: white !important;
+  }
 }

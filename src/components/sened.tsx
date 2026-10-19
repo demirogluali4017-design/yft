@@ -2,56 +2,115 @@ import type { Assignment, Personnel } from "@/lib/zimmet/api";
 import { tarih } from "@/lib/zimmet/labels";
 import { Button } from "./ui";
 
+type Veren = { adSoyad: string; rutbe: string; gorev: string };
+
 export function Sened({
   birlik,
   kisi,
   zimmetler,
   gun,
+  veren,
   onClose,
 }: {
   birlik: string;
   kisi: Personnel;
   zimmetler: Assignment[];
   gun: string;
+  veren?: Veren;
   onClose: () => void;
 }) {
+  const satir = Math.max(zimmetler.length, 8);
+  const bos = Array.from({ length: satir - zimmetler.length }, (_, i) => i);
   return (
-    <div className="fixed inset-0 z-50 overflow-auto bg-paper">
+    <div className="sened-ekran fixed inset-0 z-50 overflow-auto bg-white">
       <div className="no-print flex gap-2 border-b border-ink/10 px-4 py-3">
         <Button type="button" onClick={() => window.print()}>Yazdır / PDF</Button>
         <Button type="button" variant="ghost" onClick={onClose}>Kapat</Button>
       </div>
-      <article id="zimmet-senedi" className="mx-auto max-w-3xl px-6 py-8">
-        <p className="text-xs uppercase tracking-widest text-ink/60">{birlik}</p>
-        <h1 className="font-display text-4xl font-semibold tracking-wide">Zimmet senedi</h1>
-        <p className="mt-2 text-sm">
-          {kisi.rutbe} {kisi.adSoyad} · sicil {kisi.sicil} · {tarih(gun)}
-        </p>
-        <table className="mt-6 w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-ink text-left">
-              <th className="py-2 pr-2 font-semibold">Stok</th>
-              <th className="py-2 pr-2 font-semibold">Malzeme</th>
-              <th className="py-2 pr-2 font-semibold">Seri</th>
-              <th className="py-2 text-right font-semibold">Miktar</th>
-            </tr>
-          </thead>
+      <article id="zimmet-senedi" className="mx-auto max-w-5xl px-4 py-6 text-[11px] text-black">
+        <table className="w-full border-collapse border border-black">
           <tbody>
-            {zimmetler.map((z) => (
-              <tr key={z.id} className="border-b border-ink/15">
-                <td className="py-2 pr-2 tabular-nums">{z.stokNo}</td>
-                <td className="py-2 pr-2">{z.malzemeAd}</td>
-                <td className="py-2 pr-2">{z.seriNo || "—"}</td>
-                <td className="py-2 text-right tabular-nums">{z.miktar} {z.birim}</td>
+            <tr>
+              <th colSpan={7} className="border border-black px-2 py-1 text-center text-sm font-bold tracking-wide">
+                TAŞINIR MAL TESLİM TESELLÜM AYRINTI BELGESİ
+              </th>
+            </tr>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Taşınır Malın Birliği :</td>
+              <td className="border border-black px-2 py-1" colSpan={4}>{birlik}</td>
+              <td className="border border-black px-2 py-1 font-semibold">Rapor Tarihi:</td>
+              <td className="border border-black px-2 py-1">{tarih(gun)}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Teslim Alan Kısım/Birim:</td>
+              <td className="border border-black px-2 py-1" colSpan={6}>{birlik}</td>
+            </tr>
+            <tr>
+              <th colSpan={7} className="border border-black px-2 py-1 text-center font-semibold">
+                Zimmetlenen Seri Numarası / Kafile Listesi
+              </th>
+            </tr>
+            <tr className="text-center">
+              <th className="w-10 border border-black px-1 py-1">S.No.</th>
+              <th className="w-36 border border-black px-1 py-1">Stok No.</th>
+              <th className="border border-black px-1 py-1">Cins ve Özellikleri</th>
+              <th className="w-28 border border-black px-1 py-1">Seri Numarası</th>
+              <th className="w-24 border border-black px-1 py-1">Şim Eskim Numarası</th>
+              <th className="w-24 border border-black px-1 py-1">Son Kullanma Tarihi</th>
+              <th className="w-16 border border-black px-1 py-1">Miktar</th>
+            </tr>
+            {zimmetler.map((z, i) => (
+              <tr key={z.id} className="h-8">
+                <td className="border border-black px-1 text-center">{i + 1}</td>
+                <td className="border border-black px-1">{z.stokNo}</td>
+                <td className="border border-black px-1">{z.malzemeAd}</td>
+                <td className="border border-black px-1">{z.seriNo}</td>
+                <td className="border border-black px-1" />
+                <td className="border border-black px-1" />
+                <td className="border border-black px-1 text-center">{z.miktar} {z.birim === "adet" ? "AD" : z.birim.toLocaleUpperCase("tr")}</td>
+              </tr>
+            ))}
+            {bos.map((n) => (
+              <tr key={`bos-${n}`} className="h-8">
+                <td className="border border-black px-1 text-center">{zimmetler.length + n + 1}</td>
+                <td className="border border-black" />
+                <td className="border border-black" />
+                <td className="border border-black" />
+                <td className="border border-black" />
+                <td className="border border-black" />
+                <td className="border border-black" />
               </tr>
             ))}
           </tbody>
         </table>
-        {zimmetler.length === 0 ? <p className="mt-4 text-sm">Üzerinde açık zimmet yok.</p> : null}
-        <div className="mt-12 grid grid-cols-2 gap-8 text-sm">
-          <p>Teslim eden<br /><span className="mt-8 block border-t border-ink/30 pt-1">İmza</span></p>
-          <p>Teslim alan<br /><span className="mt-8 block border-t border-ink/30 pt-1">{kisi.adSoyad}</span></p>
-        </div>
+        <table className="w-full border-collapse border border-black">
+          <tbody>
+            <tr>
+              <th className="border border-black px-2 py-1 text-center" colSpan={2}>TESLİM EDEN</th>
+              <th className="border border-black px-2 py-1 text-center">TESLİM ALAN</th>
+            </tr>
+            <tr className="h-14">
+              <td className="w-28 border border-black px-2">İmzası</td>
+              <td className="border border-black" />
+              <td className="border border-black" />
+            </tr>
+            <tr>
+              <td className="border border-black px-2">Adı ve Soyadı</td>
+              <td className="border border-black px-2 font-semibold">{veren?.adSoyad.toLocaleUpperCase("tr")}</td>
+              <td className="border border-black px-2 font-semibold">{kisi.adSoyad.toLocaleUpperCase("tr")}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2">Rütbesi</td>
+              <td className="border border-black px-2">{veren?.rutbe}</td>
+              <td className="border border-black px-2">{kisi.rutbe}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2">Görevi</td>
+              <td className="border border-black px-2">{veren?.gorev}</td>
+              <td className="border border-black px-2">{kisi.gorev}</td>
+            </tr>
+          </tbody>
+        </table>
       </article>
     </div>
   );

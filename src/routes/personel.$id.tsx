@@ -61,7 +61,7 @@ function Detay({ id }: { id: string }) {
       </ul>
       <p className="mt-3 text-sm text-ink/60">Açık kalem: {acik.length}</p>
       {sened ? (
-        <Sened birlik={sened.birlik} kisi={sened.kisi} zimmetler={sened.zimmetler} gun={sened.tarih} onClose={() => setSened(null)} />
+        <Sened birlik={sened.birlik} kisi={sened.kisi} zimmetler={sened.zimmetler} gun={sened.tarih} veren={sened.veren} onClose={() => setSened(null)} />
       ) : null}
     </div>
   );

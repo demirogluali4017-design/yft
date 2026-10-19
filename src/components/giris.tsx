@@ -83,7 +83,7 @@ export function KurulumForm({ kayitli }: { kayitli: boolean }) {
   const qc = useQueryClient();
   const form = useForm<KurulumInput>({
     resolver: zodResolver(kurulumSchema),
-    defaultValues: { birlik: "1'inci Lojistik Destek Kolu", adSoyad: "", rutbe: "Yüzbaşı", sicil: "", sifre: "" },
+    defaultValues: { birlik: "2'nci Komando Kolu", adSoyad: "", rutbe: "Yüzbaşı", sicil: "", sifre: "" },
   });
   return (
     <form

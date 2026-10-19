@@ -88,6 +88,7 @@ function Envanter() {
             <tr>
               <th className="px-3 py-2 font-semibold">Stok</th>
               <th className="px-3 py-2 font-semibold">Malzeme</th>
+              <th className="px-3 py-2 font-semibold">Seri</th>
               <th className="px-3 py-2 font-semibold">Konum</th>
               <th className="px-3 py-2 font-semibold">Durum</th>
               <th className="px-3 py-2 text-right font-semibold">Zimmet miktarı</th>
@@ -104,8 +105,9 @@ function Envanter() {
                   <Link to="/envanter/$id" params={{ id: m.id }} className="font-semibold underline-offset-2 hover:underline">
                     {m.ad}
                   </Link>
-                  <span className="block text-xs text-ink/50">{m.kategori}{m.seriNo ? ` · ${m.seriNo}` : ""}</span>
+                  <span className="block text-xs text-ink/50">{m.kategori}</span>
                 </td>
+                <td className="px-3 py-2 tabular-nums">{m.seriNo || "—"}</td>
                 <td className="px-3 py-2">{m.konum || "—"}</td>
                 <td className="px-3 py-2">
                   <span className="text-xs font-semibold uppercase tracking-wide">{m.deleted ? "Düşüldü" : SINIF_AD[stokSinifi(m)]}</span>

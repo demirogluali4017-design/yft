@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { authClient } from "@/lib/auth/client";
+import { authClient, setBearerToken } from "@/lib/auth/client";
 import { foundUnit, requestAccess } from "@/lib/zimmet/api";
 import { hataMetni } from "@/lib/zimmet/labels";
 import { erisimSchema, girisEpostasi, girisSchema, kullaniciEpostasi, kurulumSchema, type KurulumInput } from "@/lib/zimmet/schema";
@@ -42,11 +42,16 @@ function GirisForm() {
     <form
       className="space-y-4"
       onSubmit={form.handleSubmit(async (values) => {
-        const { error } = await authClient.signIn.email({
+        const { data, error } = await authClient.signIn.email({
           email: girisEpostasi(values.kullanici),
           password: values.sifre,
         });
-        if (error) toast.error(error.message || "Giriş yapılamadı.");
+        if (error) {
+          toast.error(girisHatasi(error));
+          return;
+        }
+        if (data?.token) setBearerToken(data.token);
+        window.location.assign("/");
       })}
     >
       <Field label="Kullanıcı adı veya sicil" error={form.formState.errors.kullanici?.message}>
@@ -60,6 +65,18 @@ function GirisForm() {
       </Button>
     </form>
   );
+}
+
+function girisHatasi(error: { message?: string; status?: number; code?: string }) {
+  const mesaj = (error.message ?? "").toLowerCase();
+  if (mesaj.includes("invalid email or password") || error.code === "INVALID_EMAIL_OR_PASSWORD") {
+    return "Sicil veya şifre yanlış.";
+  }
+  if (mesaj.includes("origin") || error.status === 403) {
+    return "Bu adresten giriş kapalı. lbs65.vercel.app adresini açın.";
+  }
+  if (error.message) return error.message;
+  return "Giriş yapılamadı. Sayfayı yenileyip tekrar deneyin.";
 }
 
 export function KurulumForm({ kayitli }: { kayitli: boolean }) {

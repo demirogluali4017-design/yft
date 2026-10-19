@@ -989,33 +989,30 @@ function satirAyikla(text: string): KalemInput[] {
 }
 
 async function geminiSatir(apiKey: string, mime: string, image: string): Promise<KalemInput[]> {
-  const models = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"];
+  const models = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite"];
   let mesgul = false;
+  let cevap = false;
   for (const model of models) {
     let res: Response;
     try {
-      res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-        {
-          method: "POST",
-          signal: AbortSignal.timeout(18_000),
-          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-          body: JSON.stringify({
-            generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text: 'Fotoğraftaki her satırı şu JSON içinde ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Malzeme listesinde name malzeme adıdır. Kişi listesinde name ad soyaddır, rütbe ve görev notes alanına yazılır. Okunamayan alanı boş bırak. Yalnızca JSON.',
-                  },
-                  { inline_data: { mime_type: mime, data: image } },
-                ],
-              },
-            ],
-          }),
-        },
-      );
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey.trim() },
+        body: JSON.stringify({
+          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: 'Fotoğraftaki her satırı şu JSON içinde ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Malzeme listesinde name malzeme adıdır. Kişi listesinde name ad soyaddır, rütbe ve görev notes alanına yazılır. Okunamayan alanı boş bırak. Yalnızca JSON.',
+                },
+                { inline_data: { mime_type: mime, data: image } },
+              ],
+            },
+          ],
+        }),
+      });
     } catch {
       mesgul = true;
       continue;
@@ -1025,14 +1022,18 @@ async function geminiSatir(apiKey: string, mime: string, image: string): Promise
       continue;
     }
     if (!res.ok) continue;
+    cevap = true;
     const body = (await res.json()) as {
       candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
     };
     const parts = body.candidates?.[0]?.content?.parts ?? [];
-    const text = parts.filter((part) => !part.thought).map((part) => part.text ?? "").join("");
-    const materials = satirAyikla(text);
-    if (materials.length) return materials;
+    const duz = parts.filter((part) => !part.thought).map((part) => part.text ?? "").join("");
+    const tum = parts.map((part) => part.text ?? "").join("");
+    const materials = satirAyikla(duz);
+    const bulunan = materials.length ? materials : satirAyikla(tum);
+    if (bulunan.length) return bulunan;
   }
+  if (cevap) deny("Okunabilir kalem bulunamadı.");
   if (mesgul) deny("Belge okuma şu an meşgul. Biraz sonra yeniden deneyin.");
   deny("Belgeden satır çıkarılamadı. Elle satır ekleyebilirsiniz.");
 }

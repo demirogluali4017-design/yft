@@ -51,7 +51,7 @@ export function Sened({
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Taşınır Malın Birliği :</td>
-              <td className="border border-black px-2 py-1" colSpan={2} />
+              <td className="border border-black px-2 py-1" colSpan={2}>1'inci Komando Bölüğü 2'nci Komando Kolu</td>
               <td className="border border-black px-2 py-1 font-semibold">Rapor Tarihi:</td>
               <td className="border border-black px-2 py-1" />
             </tr>

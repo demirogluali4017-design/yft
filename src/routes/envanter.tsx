@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AppShell, useInvalidate, useWorkspaceQuery } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
+import { yazdirBelge } from "@/components/sened";
 import { assignZimmet, getMaterial, listMaterials, listPersonnel, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
 import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi, tarih } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
@@ -29,6 +30,7 @@ function Envanter() {
   const [acik, setAcik] = useState(false);
   const [zimmet, setZimmet] = useState<Material | null>(null);
   const [detay, setDetay] = useState<Material | null>(null);
+  const [form, setForm] = useState<Material | null>(null);
   const invalidate = useInvalidate();
   const zimmetYetkisi =
     oturum?.profile?.role === "komutan" ||
@@ -131,6 +133,7 @@ function Envanter() {
                   {zimmetYetkisi && !m.deleted && m.durum === "saglam" && m.musait > 0 ? (
                     <Button type="button" variant="ghost" onClick={() => setZimmet(m)}>Zimmet</Button>
                   ) : null}
+                  <Button type="button" variant="ghost" onClick={() => setForm(m)}>Malzeme bilgi formu</Button>
                 </td>
               </tr>
             ))}
@@ -147,6 +150,7 @@ function Envanter() {
       />
       <ZimmetDialog mal={zimmet} onClose={() => setZimmet(null)} />
       <ZimmetDetay mal={detay} onClose={() => setDetay(null)} />
+      <BilgiFormu mal={form} birlik={liste.data?.birlik ?? "2'nci Komando Kolu"} onClose={() => setForm(null)} />
     </div>
   );
 }
@@ -205,6 +209,124 @@ function ZimmetDetay({ mal, onClose }: { mal: Material | null; onClose: () => vo
         </>
       ) : null}
     </Dialog>
+  );
+}
+
+function BilgiFormu({ mal, birlik, onClose }: { mal: Material | null; birlik: string; onClose: () => void }) {
+  const sorgu = useQuery({
+    queryKey: ["zimmet", "malzeme", mal?.id, "form"],
+    queryFn: () => getMaterial({ data: mal!.id }),
+    enabled: !!mal,
+  });
+  if (!mal) return null;
+  const m = sorgu.data?.malzeme ?? mal;
+  const zimmetler = sorgu.data?.zimmetler ?? [];
+  const acik = zimmetler.filter((z) => z.durum === "aktif");
+  const loglar = sorgu.data?.loglar ?? [];
+  const bugun = new Date().toISOString().slice(0, 10);
+  return (
+    <div className="sened-ekran fixed inset-0 z-50 overflow-auto bg-white">
+      <div className="no-print flex gap-2 border-b border-ink/10 px-4 py-3">
+        <Button type="button" onClick={yazdirBelge}>PDF / Yazdır</Button>
+        <Button type="button" variant="ghost" onClick={onClose}>Kapat</Button>
+      </div>
+      <article id="zimmet-senedi" className="mx-auto max-w-5xl px-4 py-6 text-[12px] text-black">
+        <h1 className="text-center text-sm font-bold tracking-wide">MALZEME BİLGİ FORMU</h1>
+        <p className="mt-1 text-center">{birlik} · {tarih(bugun)}</p>
+        {sorgu.isLoading ? <p className="mt-4">Yükleniyor</p> : null}
+        {sorgu.error ? <p className="mt-4">{hataMetni(sorgu.error)}</p> : null}
+        <table className="mt-4 w-full border-collapse border border-black">
+          <tbody>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Malzeme</td>
+              <td className="border border-black px-2 py-1" colSpan={3}>{m.ad}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Stok no</td>
+              <td className="border border-black px-2 py-1">{m.stokNo}</td>
+              <td className="border border-black px-2 py-1 font-semibold">Seri no</td>
+              <td className="border border-black px-2 py-1">{m.seriNo || "—"}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Kategori</td>
+              <td className="border border-black px-2 py-1">{m.kategori}</td>
+              <td className="border border-black px-2 py-1 font-semibold">Konum</td>
+              <td className="border border-black px-2 py-1">{m.konum || "—"}</td>
+            </tr>
+            <tr>
+              <td className="border border-black px-2 py-1 font-semibold">Durum</td>
+              <td className="border border-black px-2 py-1">
+                {m.deleted ? "Düşüldü" : DURUM_AD[m.durum]}
+                {m.muharebe === "eder" ? " · muharebe eder" : m.muharebe === "edemez" ? " · muharebe edemez" : ""}
+              </td>
+              <td className="border border-black px-2 py-1 font-semibold">Miktar</td>
+              <td className="border border-black px-2 py-1">{m.miktar} {m.birim} · zimmetli {m.zimmetli} · zimmetsiz {m.musait}</td>
+            </tr>
+          </tbody>
+        </table>
+        <h2 className="mt-4 font-semibold">Şu an kimde</h2>
+        {acik.length === 0 ? <p>Zimmetli değil.</p> : (
+          <ul>
+            {acik.map((z) => (
+              <li key={z.id}>{z.rutbe} {z.personelAd} · sicil {z.sicil} · {z.miktar} {z.birim} · {tarih(z.assignedAt)}{z.yapanAd ? ` · veren ${z.yapanAd}` : ""}</li>
+            ))}
+          </ul>
+        )}
+        <h2 className="mt-4 font-semibold">Zimmet safahatı</h2>
+        <table className="mt-1 w-full border-collapse border border-black">
+          <thead>
+            <tr className="text-left">
+              <th className="border border-black px-2 py-1">Kişi</th>
+              <th className="border border-black px-2 py-1">Miktar</th>
+              <th className="border border-black px-2 py-1">Zimmet</th>
+              <th className="border border-black px-2 py-1">İade</th>
+              <th className="border border-black px-2 py-1">Yapan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {zimmetler.length === 0 ? (
+              <tr><td className="border border-black px-2 py-1" colSpan={5}>Kayıt yok.</td></tr>
+            ) : zimmetler.map((z) => (
+              <tr key={z.id}>
+                <td className="border border-black px-2 py-1">{z.rutbe} {z.personelAd}</td>
+                <td className="border border-black px-2 py-1">{z.miktar} {z.birim} · {z.durum === "aktif" ? "açık" : "iade"}</td>
+                <td className="border border-black px-2 py-1">{tarih(z.assignedAt)}</td>
+                <td className="border border-black px-2 py-1">{z.returnedAt ? tarih(z.returnedAt) : "—"}</td>
+                <td className="border border-black px-2 py-1">{z.yapanAd || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h2 className="mt-4 font-semibold">Arıza geçmişi</h2>
+        <table className="mt-1 w-full border-collapse border border-black">
+          <thead>
+            <tr className="text-left">
+              <th className="border border-black px-2 py-1">Tarih</th>
+              <th className="border border-black px-2 py-1">Saat</th>
+              <th className="border border-black px-2 py-1">Durum</th>
+              <th className="border border-black px-2 py-1">Kademe</th>
+              <th className="border border-black px-2 py-1">Not</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loglar.length === 0 ? (
+              <tr><td className="border border-black px-2 py-1" colSpan={5}>Arıza kaydı yok.</td></tr>
+            ) : loglar.map((l) => (
+              <tr key={l.id}>
+                <td className="border border-black px-2 py-1">{tarih(l.tespit || l.tarih)}</td>
+                <td className="border border-black px-2 py-1">{l.saat?.slice(11) || "—"}</td>
+                <td className="border border-black px-2 py-1">
+                  {DURUM_AD[l.durum as keyof typeof DURUM_AD] ?? l.durum}
+                  {l.muharebe === "eder" ? " · eder" : l.muharebe === "edemez" ? " · edemez" : ""}
+                </td>
+                <td className="border border-black px-2 py-1">{l.kademe || "—"}{l.gidis ? ` · gidiş ${tarih(l.gidis)}` : ""}</td>
+                <td className="border border-black px-2 py-1">{l.notlar || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </article>
+    </div>
   );
 }
 

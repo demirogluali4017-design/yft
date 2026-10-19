@@ -34,7 +34,7 @@ function Rapor({ id }: { id: string }) {
       <article id="zimmet-senedi">
         <p className="text-xs uppercase tracking-widest text-ink/50">{data.birlik}</p>
         <h1 className="font-display text-4xl font-semibold tracking-wide">Arıza raporu</h1>
-        <p className="mt-1 text-sm text-ink/60">Düzenleme {tarih(data.tarih)}</p>
+        <p className="mt-1 text-sm text-ink/60">Tarih {tarih(data.tarih)}</p>
         <dl className="mt-6 grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
           <Bilgi ad="Malzeme" deger={m.ad} />
           <Bilgi ad="Stok" deger={m.stokNo} />

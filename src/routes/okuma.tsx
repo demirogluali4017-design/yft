@@ -50,7 +50,7 @@ function Okuma() {
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Belge oku</h1>
       <p className="mt-1 max-w-xl text-sm text-ink/60">
-        El senedi veya envanter kâğıdının fotoğrafını yükleyin. Çıkan satırları düzeltin, sonra envantere alın. Fotoğraf saklanmaz.
+        Kâğıdın fotoğrafını yükleyin. Okunan satırları düzeltip envantere ekleyin. Fotoğraf kaydedilmez.
       </p>
       <label className="mt-4 inline-flex h-11 cursor-pointer items-center bg-field px-4 text-sm font-semibold text-paper">
         {busy ? "Okunuyor" : "Fotoğraf seç"}

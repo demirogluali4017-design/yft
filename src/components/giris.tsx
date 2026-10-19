@@ -141,7 +141,7 @@ export function ErisimForm() {
       })}
     >
       <h1 className="font-display text-4xl font-semibold tracking-wide">Erişim iste</h1>
-      <p className="text-sm text-ink/60">Kol komutanı kaydınızı onaylayınca deftere girersiniz.</p>
+      <p className="text-sm text-ink/60">Kol komutanı onaylayınca giriş yapabilirsiniz.</p>
       <Field label="Ad soyad" error={form.formState.errors.adSoyad?.message}>
         <TextInput {...form.register("adSoyad")} />
       </Field>

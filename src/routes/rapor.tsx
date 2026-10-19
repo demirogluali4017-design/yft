@@ -19,7 +19,7 @@ function Rapor() {
   if (sorgu.isLoading) return <p className="text-sm text-ink/60">Rapor hazırlanıyor</p>;
   if (sorgu.error) return <p className="text-signal">{hataMetni(sorgu.error)}</p>;
   const data = sorgu.data;
-  if (!data || data.kind !== "kadro") return <p>Bu rapor kadro içindir.</p>;
+  if (!data || data.kind !== "kadro") return <p>Bu raporu yalnız yetkililer görür.</p>;
   return (
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Rapor</h1>

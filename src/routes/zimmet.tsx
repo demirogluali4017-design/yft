@@ -70,7 +70,7 @@ function Zimmet() {
   return (
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Zimmet</h1>
-      <p className="mt-1 text-sm text-ink/60">Çıkış personele yazar, iade depoya döndürür. Senet kişi bazındadır.</p>
+      <p className="mt-1 text-sm text-ink/60">Zimmet verince malzeme personele geçer. İade alınınca geri gelir.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {SEKMELER.map(([id, ad]) => (
           <Button key={id} type="button" variant={sekme === id ? "solid" : "ghost"} onClick={() => setSekme(id)}>
@@ -81,7 +81,7 @@ function Zimmet() {
 
       {sekme === "ekle" ? (
         <section className="mt-6">
-          <p className="text-sm text-ink/60">Yalnızca zimmetsiz adedi olan kalemler çıkar.</p>
+          <p className="text-sm text-ink/60">Listede yalnız verilebilecek malzemeler vardır.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <Field label="Personel">
               <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
@@ -229,7 +229,7 @@ function Zimmet() {
 
       {sekme === "belge" ? (
         <section className="mt-6 max-w-lg space-y-3">
-          <p className="text-sm text-ink/60">Seçilen kişinin üzerindeki açık zimmetler senede dökülür.</p>
+          <p className="text-sm text-ink/60">Seçilen kişinin üzerindeki malzemeler senette listelenir.</p>
           <Field label="Personel">
             <Select value={belgeKisi} onChange={(e) => setBelgeKisi(e.target.value)}>
               <option value="">Seçin</option>
@@ -257,8 +257,8 @@ function Zimmet() {
       {sekme === "bos" ? (
         <section className="mt-6">
           <h2 className="font-display text-2xl font-semibold">Tamamı zimmetsiz</h2>
-          <p className="text-sm text-ink/60">Hiç ayrılmamış stok.</p>
-          {tamamenBos.length === 0 ? <div className="mt-3"><Empty>Boşta malzeme yok.</Empty></div> : (
+          <p className="text-sm text-ink/60">Hiç zimmet verilmemiş malzemeler.</p>
+          {tamamenBos.length === 0 ? <div className="mt-3"><Empty>Zimmetlenmemiş malzeme yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
               {tamamenBos.map((m) => (
                 <li key={m.id} className="flex justify-between gap-3 px-3 py-2">
@@ -269,8 +269,8 @@ function Zimmet() {
             </ul>
           )}
           <h2 className="mt-8 font-display text-2xl font-semibold">Kısmen zimmetli</h2>
-          <p className="text-sm text-ink/60">Bir kısmı zimmetli, kalan zimmetsiz.</p>
-          {kismenBos.length === 0 ? <div className="mt-3"><Empty>Kısmen boşta kalem yok.</Empty></div> : (
+          <p className="text-sm text-ink/60">Bir kısmı personelde, kalanı henüz verilmedi.</p>
+          {kismenBos.length === 0 ? <div className="mt-3"><Empty>Kısmen zimmetli malzeme yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
               {kismenBos.map((m) => (
                 <li key={m.id} className="flex justify-between gap-3 px-3 py-2">

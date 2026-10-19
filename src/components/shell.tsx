@@ -85,7 +85,7 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
       <main className="grid min-h-screen place-items-center px-6 text-center">
         <div>
           <p className="font-display text-4xl font-semibold">Onay bekleniyor</p>
-          <p className="mt-2 text-sm text-ink/60">Kol komutanı kaydınızı personel veya yetkili olarak açacak.</p>
+          <p className="mt-2 text-sm text-ink/60">Kol komutanı hesabınızı onaylayınca girebilirsiniz.</p>
           <div className="mt-6 flex justify-center"><UserButton /></div>
         </div>
       </main>

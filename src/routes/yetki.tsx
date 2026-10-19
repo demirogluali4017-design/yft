@@ -37,7 +37,7 @@ function Yetki() {
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Yetki</h1>
       <p className="mt-1 max-w-xl text-sm text-ink/60">
-        Liste personel kadrosudur. Yetki vermek ve geri almak yalnız kol komutanına açıktır. Hesabı olmayan personele önce Personel ekranından şifre verin.
+        Yetkiyi yalnız kol komutanı verir ve alır. Hesabı olmayan kişiye önce Personel sayfasından şifre açın.
       </p>
       {sorgu.isLoading ? <p className="mt-6 text-sm text-ink/60">Yükleniyor</p> : null}
       {(sorgu.data?.personeller.length ?? 0) === 0 && !sorgu.isLoading ? <div className="mt-6"><Empty>Personel yok.</Empty></div> : null}

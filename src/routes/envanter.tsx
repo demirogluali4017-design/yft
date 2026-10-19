@@ -59,7 +59,7 @@ function Envanter() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-wide">Envanter</h1>
-          <p className="text-sm text-ink/60">{liste.data?.birlik} · zimmet miktarı, zimmetli, zimmetsiz</p>
+          <p className="text-sm text-ink/60">{liste.data?.birlik} · toplam, zimmetli ve zimmetsiz adet</p>
         </div>
         <Button type="button" onClick={() => setAcik(true)}>Malzeme ekle</Button>
       </div>
@@ -81,7 +81,7 @@ function Envanter() {
       </div>
       {liste.isLoading ? <p className="mt-6 text-sm text-ink/60">Yükleniyor</p> : null}
       {liste.error ? <p className="mt-6 text-signal">{hataMetni(liste.error)}</p> : null}
-      {satirlar.length === 0 && !liste.isLoading ? <div className="mt-6"><Empty>Bu süzgeçte malzeme yok.</Empty></div> : null}
+      {satirlar.length === 0 && !liste.isLoading ? <div className="mt-6"><Empty>Bu filtrede malzeme yok.</Empty></div> : null}
       <div className="mt-4 overflow-x-auto border border-ink/10">
         <table className="w-full min-w-2xl text-left text-sm">
           <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">

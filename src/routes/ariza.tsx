@@ -37,7 +37,7 @@ function Ariza() {
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-wide">Arızalı malzeme</h1>
           <p className="mt-1 max-w-xl text-sm text-ink/60">
-            Kademeye gidiş tarih, seri ve adla aranır. Eklenen kalem envanterde arızalı görünür.
+            Tarih, seri numarası veya adla arayın. Yeni kayıt envantere arızalı olarak eklenir.
           </p>
         </div>
         <Button type="button" onClick={() => setEkle((v) => !v)}>{ekle ? "Liste" : "Malzeme ekle"}</Button>

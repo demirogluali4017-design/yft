@@ -41,7 +41,7 @@ function Ozet() {
     <div>
       <h1 className="font-display text-4xl font-semibold tracking-wide">Stok panosu</h1>
       <p className="mt-1 max-w-xl text-sm text-ink/60">
-        Zimmet miktarı kayıtlı toplamdır. Zimmetli personelin üstündedir. Zimmetsiz henüz verilmemiştir.
+        Zimmet miktarı toplamdır. Zimmetli, personelde olandır. Zimmetsiz, henüz verilmeyendir.
       </p>
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Sayi etiket="Zimmet miktarı" deger={data.adet} />

@@ -618,18 +618,20 @@ export const listOpenFaults = createServerFn({ method: "GET" })
       muharebe: string;
       tespit: string | null;
       gidis: string | null;
+      saat: string | null;
     }>`
       select m.id, m.ad, m.stok_no, m.seri_no, m.miktar, m.birim, m.durum,
              coalesce(f.kademe, '') as kademe, coalesce(f.notlar, '') as notlar,
              coalesce(f.muharebe, m.muharebe) as muharebe,
              coalesce(f.tespit_tarihi, f.olay_tarihi)::text as tespit,
-             f.gidis_tarihi::text as gidis
+             f.gidis_tarihi::text as gidis,
+             to_char(f.created_at at time zone 'Europe/Istanbul', 'YYYY-MM-DD HH24:MI') as saat
       from materials m
       left join lateral (
-        select kademe, notlar, muharebe, tespit_tarihi, olay_tarihi, gidis_tarihi
+        select kademe, notlar, muharebe, tespit_tarihi, olay_tarihi, gidis_tarihi, created_at
         from fault_logs
         where material_id = m.id
-        order by coalesce(tespit_tarihi, olay_tarihi, created_at::date) desc
+        order by created_at desc
         limit 1
       ) f on true
       where m.deleted_at is null and m.durum in ('arizali', 'tamirde')
@@ -649,6 +651,7 @@ export const listOpenFaults = createServerFn({ method: "GET" })
         muharebe: r.muharebe,
         tespit: r.tespit ?? "",
         gidis: r.gidis ?? "",
+        saat: r.saat ?? "",
       })),
     };
   });
@@ -715,14 +718,16 @@ export const listFaults = createServerFn({ method: "POST" })
       notlar: string;
       tespit: string;
       gidis: string | null;
+      saat: string;
     }>(
       `select f.id, f.material_id, m.ad, m.stok_no, m.seri_no, f.durum, f.kademe, f.muharebe, f.notlar,
               coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date)::text as tespit,
-              f.gidis_tarihi::text as gidis
+              f.gidis_tarihi::text as gidis,
+              to_char(f.created_at at time zone 'Europe/Istanbul', 'YYYY-MM-DD HH24:MI') as saat
        from fault_logs f
        join materials m on m.id = f.material_id
        ${where}
-       order by coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date) desc, m.ad
+       order by f.created_at desc
        limit 200`,
       params,
     );
@@ -740,6 +745,7 @@ export const listFaults = createServerFn({ method: "POST" })
         tarih: r.tespit,
         tespit: r.tespit,
         gidis: r.gidis ?? "",
+        saat: r.saat,
       })),
     };
   });
@@ -760,12 +766,14 @@ export const getFaultReport = createServerFn({ method: "POST" })
       muharebe: string;
       tespit: string;
       gidis: string | null;
+      saat: string;
     }>`
       select id, durum, notlar, kademe, muharebe,
              coalesce(tespit_tarihi, olay_tarihi, created_at::date)::text as tespit,
-             gidis_tarihi::text as gidis
+             gidis_tarihi::text as gidis,
+             to_char(created_at at time zone 'Europe/Istanbul', 'YYYY-MM-DD HH24:MI') as saat
       from fault_logs where material_id = ${id}
-      order by coalesce(tespit_tarihi, olay_tarihi, created_at::date)
+      order by created_at desc
     `;
     const zimmetler = (await sql.query<AsgRow>(
       `${ASSIGNMENT_SELECT} where a.material_id = $1 and a.durum = 'aktif'`,
@@ -783,6 +791,7 @@ export const getFaultReport = createServerFn({ method: "POST" })
         tarih: l.tespit,
         tespit: l.tespit,
         gidis: l.gidis ?? "",
+        saat: l.saat,
       })),
       zimmetler,
       tarih: new Date().toISOString().slice(0, 10),

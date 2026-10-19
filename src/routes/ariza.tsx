@@ -159,6 +159,7 @@ function Ariza() {
                     <th className="px-3 py-2">Malzeme</th>
                     <th className="px-3 py-2">Seri</th>
                     <th className="px-3 py-2">Tespit</th>
+                    <th className="px-3 py-2">Saat</th>
                     <th className="px-3 py-2">Gidiş</th>
                     <th className="px-3 py-2">Kademe</th>
                     <th className="px-3 py-2">Not</th>
@@ -173,6 +174,7 @@ function Ariza() {
                       </td>
                       <td className="px-3 py-2">{m.seriNo || "—"}</td>
                       <td className="px-3 py-2 tabular-nums">{m.tespit ? tarih(m.tespit) : "—"}</td>
+                      <td className="px-3 py-2 tabular-nums">{m.saat?.slice(11) || "—"}</td>
                       <td className="px-3 py-2 tabular-nums">{m.gidis ? tarih(m.gidis) : "—"}</td>
                       <td className="px-3 py-2">{m.kademe || "—"}</td>
                       <td className="px-3 py-2">{m.notlar || "—"}</td>
@@ -199,7 +201,7 @@ function Ariza() {
                   <div>
                     <p className="font-semibold">{k.ad}</p>
                     <p className="text-ink/60">
-                      Tespit {tarih(k.tespit)}{k.gidis ? ` · Gidiş ${tarih(k.gidis)}` : ""} · {k.kademe || "kademe yazılmamış"} · seri {k.seriNo || "—"} · {DURUM_AD[k.durum as keyof typeof DURUM_AD] ?? k.durum}
+                      Tespit {tarih(k.tespit)} {k.saat?.slice(11) || ""}{k.gidis ? ` · Gidiş ${tarih(k.gidis)}` : ""} · {k.kademe || "kademe yazılmamış"} · seri {k.seriNo || "—"} · {DURUM_AD[k.durum as keyof typeof DURUM_AD] ?? k.durum}
                       {k.muharebe === "eder" ? " · muharebe eder" : k.muharebe === "edemez" ? " · muharebe edemez" : ""}
                     </p>
                   </div>

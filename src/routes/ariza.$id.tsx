@@ -24,6 +24,7 @@ type Log = {
   muharebe: string;
   tespit: string;
   gidis: string;
+  saat: string;
 };
 
 function Rapor({ id }: { id: string }) {
@@ -68,6 +69,7 @@ function Rapor({ id }: { id: string }) {
             <thead>
               <tr className="border-b border-ink text-left">
                 <th className="py-2 pr-2">Tespit</th>
+                <th className="py-2 pr-2">Saat</th>
                 <th className="py-2 pr-2">Gidiş</th>
                 <th className="py-2 pr-2">Kademe</th>
                 <th className="py-2 pr-2">Durum</th>
@@ -79,6 +81,7 @@ function Rapor({ id }: { id: string }) {
               {data.loglar.map((l) => (
                 <tr key={l.id} className="border-b border-ink/15">
                   <td className="py-2 pr-2 tabular-nums">{tarih(l.tespit)}</td>
+                  <td className="py-2 pr-2 tabular-nums">{l.saat?.slice(11) || "—"}</td>
                   <td className="py-2 pr-2 tabular-nums">{l.gidis ? tarih(l.gidis) : "—"}</td>
                   <td className="py-2 pr-2">{l.kademe || "—"}</td>
                   <td className="py-2 pr-2">{DURUM_AD[l.durum as keyof typeof DURUM_AD] ?? l.durum}</td>
@@ -147,7 +150,7 @@ function Guncelle({
         <Field label="Hangi kayıt">
           <select className="h-11 w-full border border-ink/15 bg-transparent px-3" value={secili} onChange={(e) => onSec(e.target.value)}>
             {loglar.map((l, i) => (
-              <option key={l.id} value={l.id}>{i + 1}. kayıt · tespit {tarih(l.tespit)}</option>
+              <option key={l.id} value={l.id}>{i + 1}. kayıt · {tarih(l.tespit)} {l.saat?.slice(11) || ""}</option>
             ))}
           </select>
         </Field>

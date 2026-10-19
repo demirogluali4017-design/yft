@@ -19,10 +19,10 @@ import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 export const Route = createFileRoute("/zimmet")({ component: Page });
 
 const SEKMELER = [
-  ["ekle", "Zimmet ekle"],
-  ["cikar", "Zimmet çıkar"],
-  ["belge", "Zimmet belgesi"],
-  ["bos", "Tutarsız"],
+  ["ekle", "Zimmet ver"],
+  ["cikar", "İade al"],
+  ["belge", "Senet"],
+  ["bos", "Depoda"],
 ] as const;
 
 function Page() {
@@ -58,7 +58,8 @@ function Zimmet() {
 
   return (
     <div>
-      <h1 className="font-display text-4xl font-semibold tracking-wide">Zimmet işlemleri</h1>
+      <h1 className="font-display text-4xl font-semibold tracking-wide">Zimmet</h1>
+      <p className="mt-1 text-sm text-ink/60">Çıkış personele yazar, iade depoya döndürür. Senet kişi bazındadır.</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {SEKMELER.map(([id, ad]) => (
           <Button key={id} type="button" variant={sekme === id ? "solid" : "ghost"} onClick={() => setSekme(id)}>
@@ -69,7 +70,7 @@ function Zimmet() {
 
       {sekme === "ekle" ? (
         <section className="mt-6">
-          <p className="text-sm text-ink/60">Tek seferde birden fazla kalem aynı senede yazılır.</p>
+          <p className="text-sm text-ink/60">Yalnızca dağıtılabilir, depoda adedi olan kalemler çıkar.</p>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             <Field label="Personel">
               <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
@@ -83,7 +84,7 @@ function Zimmet() {
               <Select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
                 <option value="">Seçin</option>
                 {saglam.map((m) => (
-                  <option key={m.id} value={m.id}>{m.ad} · depo {m.musait}</option>
+                  <option key={m.id} value={m.id}>{m.ad} · müsait {m.musait}</option>
                 ))}
               </Select>
             </Field>
@@ -139,7 +140,7 @@ function Zimmet() {
               }
             }}
           >
-            Zimmetle
+            Zimmet ver
           </Button>
         </section>
       ) : null}
@@ -178,14 +179,14 @@ function Zimmet() {
                     onClick={async () => {
                       try {
                         await returnAssignment({ data: z.id });
-                        toast.success("Zimmet çekildi");
+                        toast.success("İade alındı");
                         await invalidate();
                       } catch (error) {
                         toast.error(hataMetni(error));
                       }
                     }}
                   >
-                    Zimmet çıkar
+                    İade al
                   </Button>
                 </div>
               </li>
@@ -223,7 +224,8 @@ function Zimmet() {
 
       {sekme === "bos" ? (
         <section className="mt-6">
-          <h2 className="font-display text-2xl font-semibold">Hiç zimmetlenmemiş</h2>
+          <h2 className="font-display text-2xl font-semibold">Tamamı depoda</h2>
+          <p className="text-sm text-ink/60">Hiç ayrılmamış stok.</p>
           {tamamenBos.length === 0 ? <div className="mt-3"><Empty>Boşta malzeme yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
               {tamamenBos.map((m) => (
@@ -234,14 +236,14 @@ function Zimmet() {
               ))}
             </ul>
           )}
-          <h2 className="mt-8 font-display text-2xl font-semibold">Kısmen boşta</h2>
-          <p className="text-sm text-ink/60">Bir kısmı zimmetli, depoda kalan adet.</p>
+          <h2 className="mt-8 font-display text-2xl font-semibold">Kısmen ayrılmış</h2>
+          <p className="text-sm text-ink/60">Bir kısmı personelde, kalan depoda.</p>
           {kismenBos.length === 0 ? <div className="mt-3"><Empty>Kısmen boşta kalem yok.</Empty></div> : (
             <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
               {kismenBos.map((m) => (
                 <li key={m.id} className="flex justify-between gap-3 px-3 py-2">
                   <span>{m.ad}</span>
-                  <span className="tabular-nums text-ink/60">zimmet {m.zimmetli} · boşta {m.musait}</span>
+                  <span className="tabular-nums text-ink/60">ayrılmış {m.zimmetli} · müsait {m.musait}</span>
                 </li>
               ))}
             </ul>

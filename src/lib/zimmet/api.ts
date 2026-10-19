@@ -1213,17 +1213,24 @@ export const getReport = createServerFn({ method: "GET" })
         adet: num(ozet[0]?.adet),
       });
     }
+    const kritik = malzemeler
+      .filter((m) => m.durum === "saglam" && m.musait === 0)
+      .map((m) => ({ id: m.id, ad: m.ad, stokNo: m.stokNo, miktar: m.miktar, zimmetli: m.zimmetli }));
     return {
       kind: "kadro" as const,
       kalem: malzemeler.length,
       adet: malzemeler.reduce((t, m) => t + m.miktar, 0),
       zimmetliAdet: malzemeler.reduce((t, m) => t + m.zimmetli, 0),
       musaitAdet: malzemeler.reduce((t, m) => t + m.musait, 0),
+      dagitilabilir: malzemeler.filter((m) => m.durum === "saglam" && m.musait > 0).length,
+      beklemede: malzemeler.filter((m) => m.durum === "arizali" || m.durum === "tamirde").length,
+      arsiv: malzemeler.filter((m) => m.durum === "kayip" || m.durum === "hurda").length,
       arizali: malzemeler.filter((m) => m.durum !== "saglam").length,
       personel: personeller.filter((p) => p.aktif).length,
       aktifZimmet: num(aktif[0]?.n),
       personelRapor: rapor,
       arizaliListe: malzemeler.filter((m) => m.durum !== "saglam"),
+      kritik,
       hareketler: await hareketlerGetir(sql, null),
     };
   });

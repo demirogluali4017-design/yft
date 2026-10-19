@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppShell, useInvalidate } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
 import { listMaterials, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
-import { DURUM_AD, hataMetni } from "@/lib/zimmet/labels";
+import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
 
 export const Route = createFileRoute("/envanter")({ component: Page });
@@ -33,8 +33,11 @@ function Envanter() {
     return hepsi.filter((m) => {
       if (filtre !== "dusulen" && m.deleted) return false;
       if (filtre === "dusulen" && !m.deleted) return false;
+      if (filtre === "dagitilabilir" && !(m.durum === "saglam" && m.musait > 0 && !m.deleted)) return false;
       if (filtre === "zimmetli" && m.zimmetli <= 0) return false;
-      if (filtre !== "tumu" && filtre !== "zimmetli" && filtre !== "dusulen" && m.durum !== filtre) return false;
+      if (filtre === "beklemede" && m.durum !== "arizali" && m.durum !== "tamirde") return false;
+      if (filtre === "arsiv" && m.durum !== "kayip" && m.durum !== "hurda" && !m.deleted) return false;
+      if (filtre === "kritik" && !(m.durum === "saglam" && m.musait === 0 && !m.deleted)) return false;
       if (!aranan) return true;
       return [m.ad, m.stokNo, m.seriNo, m.kategori, m.konum].join(" ").toLocaleLowerCase("tr").includes(aranan);
     });
@@ -45,7 +48,7 @@ function Envanter() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-wide">Envanter</h1>
-          <p className="text-sm text-ink/60">{liste.data?.birlik} · tüm malzemeler</p>
+          <p className="text-sm text-ink/60">{liste.data?.birlik} · elde, ayrılmış, müsait</p>
         </div>
         <Button type="button" onClick={() => setAcik(true)}>Malzeme ekle</Button>
       </div>
@@ -53,12 +56,11 @@ function Envanter() {
         <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Stok, ad, seri, kategori" aria-label="Ara" />
         <Select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Durum">
           <option value="tumu">Tümü</option>
-          <option value="saglam">Sağlam</option>
+          <option value="dagitilabilir">Dağıtılabilir</option>
           <option value="zimmetli">Zimmetli</option>
-          <option value="arizali">Arızalı</option>
-          <option value="tamirde">Tamirde</option>
-          <option value="kayip">Kayıp</option>
-          <option value="hurda">Hurda</option>
+          <option value="beklemede">Beklemede</option>
+          <option value="kritik">Kritik</option>
+          <option value="arsiv">Arşiv</option>
           <option value="dusulen">Düşülen</option>
         </Select>
       </div>
@@ -71,11 +73,11 @@ function Envanter() {
             <tr>
               <th className="px-3 py-2 font-semibold">Stok</th>
               <th className="px-3 py-2 font-semibold">Malzeme</th>
+              <th className="px-3 py-2 font-semibold">Konum</th>
               <th className="px-3 py-2 font-semibold">Durum</th>
-              <th className="px-3 py-2 font-semibold">Muharebe</th>
-              <th className="px-3 py-2 text-right font-semibold">Adet</th>
-              <th className="px-3 py-2 text-right font-semibold">Zimmet</th>
-              <th className="px-3 py-2 text-right font-semibold">Depo</th>
+              <th className="px-3 py-2 text-right font-semibold">Elde</th>
+              <th className="px-3 py-2 text-right font-semibold">Ayrılmış</th>
+              <th className="px-3 py-2 text-right font-semibold">Müsait</th>
             </tr>
           </thead>
           <tbody>
@@ -86,10 +88,16 @@ function Envanter() {
                   <Link to="/envanter/$id" params={{ id: m.id }} className="font-semibold underline-offset-2 hover:underline">
                     {m.ad}
                   </Link>
-                  <span className="block text-xs text-ink/50">{m.kategori}{m.konum ? ` · ${m.konum}` : ""}</span>
+                  <span className="block text-xs text-ink/50">{m.kategori}{m.seriNo ? ` · ${m.seriNo}` : ""}</span>
                 </td>
-                <td className="px-3 py-2">{m.deleted ? "Düşüldü" : DURUM_AD[m.durum]}</td>
-                <td className="px-3 py-2">{m.muharebe === "eder" ? "Eder" : m.muharebe === "edemez" ? "Edemez" : "—"}</td>
+                <td className="px-3 py-2">{m.konum || "—"}</td>
+                <td className="px-3 py-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide">{m.deleted ? "Düşüldü" : SINIF_AD[stokSinifi(m)]}</span>
+                  <span className="block text-xs text-ink/50">
+                    {DURUM_AD[m.durum]}
+                    {m.muharebe === "eder" ? " · muharebe eder" : m.muharebe === "edemez" ? " · muharebe edemez" : ""}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.miktar}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.zimmetli}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.musait}</td>

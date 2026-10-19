@@ -25,9 +25,9 @@ function Rapor() {
       <h1 className="font-display text-4xl font-semibold tracking-wide">Rapor</h1>
       <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kutu ad="Kalem" deger={data.kalem} />
-        <Kutu ad="Toplam adet" deger={data.adet} />
-        <Kutu ad="Zimmetli" deger={data.zimmetliAdet} />
-        <Kutu ad="Depoda" deger={data.musaitAdet} />
+        <Kutu ad="Elde" deger={data.adet} />
+        <Kutu ad="Ayrılmış" deger={data.zimmetliAdet} />
+        <Kutu ad="Müsait" deger={data.musaitAdet} />
       </div>
       <h2 className="mt-8 font-display text-2xl font-semibold">Personel bazlı zimmet</h2>
       <div className="mt-3 overflow-x-auto border border-ink/10">

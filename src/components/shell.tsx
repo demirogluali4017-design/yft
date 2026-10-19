@@ -11,7 +11,7 @@ import { ErisimForm, Giris, KurulumForm, MarkaBekleme } from "./giris";
 type Need = "ozet" | YetkiAnahtar | "komutan";
 
 const NAV = [
-  { to: "/", label: "Özet", need: "ozet" },
+  { to: "/", label: "Pano", need: "ozet" },
   { to: "/zimmetim", label: "Zimmetim", need: "ozet" },
   { to: "/envanter", label: "Envanter", need: "envanter" },
   { to: "/zimmet", label: "Zimmet", need: "zimmet" },
@@ -109,7 +109,7 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
         <p className="font-display text-4xl font-semibold leading-none tracking-wide">{acik || cekmece ? "YFT" : "Y"}</p>
         {acik || cekmece ? (
           <>
-            <p className="mt-1 text-xs uppercase tracking-widest text-paper/70">Zimmet defteri</p>
+            <p className="mt-1 text-xs uppercase tracking-widest text-paper/70">Stok ve zimmet</p>
             <p className="mt-4 text-sm text-paper/80">{data.birlik}</p>
           </>
         ) : null}

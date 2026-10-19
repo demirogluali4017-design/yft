@@ -15,6 +15,27 @@ export const DURUM_AD: Record<MalzemeDurum, string> = {
   hurda: "Hurda",
 };
 
+export type StokSinif = "dagitilabilir" | "zimmetli" | "beklemede" | "arsiv";
+
+export const SINIF_AD: Record<StokSinif, string> = {
+  dagitilabilir: "Dağıtılabilir",
+  zimmetli: "Zimmetli",
+  beklemede: "Beklemede",
+  arsiv: "Arşiv",
+};
+
+export function stokSinifi(m: {
+  deleted?: boolean;
+  durum: MalzemeDurum;
+  musait: number;
+  zimmetli: number;
+}): StokSinif {
+  if (m.deleted || m.durum === "kayip" || m.durum === "hurda") return "arsiv";
+  if (m.durum === "arizali" || m.durum === "tamirde") return "beklemede";
+  if (m.zimmetli > 0 && m.musait === 0) return "zimmetli";
+  return "dagitilabilir";
+}
+
 export function tarih(iso: string | null | undefined): string {
   if (!iso) return "—";
   const gun = iso.slice(0, 10);

@@ -869,12 +869,46 @@ export const savePersonnel = createServerFn({ method: "POST" })
     const actor = requireStaff(await loadActor(sql, context.userId), "personel");
     const birlik = await birlikAdi(sql, actor);
     if (data.id) {
+      const mevcut = await sql<{ user_id: string | null }>`
+        select user_id from personnel where id = ${data.id} limit 1
+      `;
+      if (!mevcut[0]) deny("Personel bulunamadı.");
+      const cakisma = await sql<{ id: string }>`
+        select id from personnel where sicil = ${data.sicil} and id <> ${data.id} limit 1
+      `;
+      if (cakisma[0]) deny("Bu sicil başka personelde.");
       await sql`
         update personnel set
           ad_soyad = ${data.adSoyad}, rutbe = ${data.rutbe}, sicil = ${data.sicil},
           gorev = ${data.gorev ?? ""}, telefon = ${data.telefon ?? ""}, birlik = ${birlik}
         where id = ${data.id}
       `;
+      const userId = mevcut[0].user_id;
+      if (userId) {
+        const email = kullaniciEpostasi(data.sicil);
+        const baska = await sql<{ id: string }>`
+          select id from "user" where email = ${email} and id <> ${userId} limit 1
+        `;
+        if (baska[0]) deny("Bu sicil başka hesapta.");
+        await sql`
+          update "user" set name = ${data.adSoyad}, email = ${email}, "updatedAt" = now()
+          where id = ${userId}
+        `;
+        await sql`
+          update profiles set
+            ad_soyad = ${data.adSoyad}, rutbe = ${data.rutbe}, sicil = ${data.sicil},
+            gorev = ${data.gorev ?? ""}, telefon = ${data.telefon ?? ""}, birlik = ${birlik}
+          where user_id = ${userId}
+        `;
+        if (data.sifre) {
+          const { hashPassword } = await import("better-auth/crypto");
+          const hash = await hashPassword(data.sifre);
+          await sql`
+            update "account" set password = ${hash}, "updatedAt" = now()
+            where "userId" = ${userId} and "providerId" = ${"credential"}
+          `;
+        }
+      }
       return { ok: true as const, id: data.id, hesap: false };
     }
     let userId: string | null = null;

@@ -96,7 +96,7 @@ export function KurulumForm({ kayitli }: { kayitli: boolean }) {
           }
           await foundUnit({ data: values });
           await qc.invalidateQueries({ queryKey: ["zimmet"] });
-          toast.success("Birlik kuruldu. Eğitim stoğu yüklendi.");
+          toast.success("Birlik kuruldu.");
         } catch (error) {
           toast.error(hataMetni(error));
         }

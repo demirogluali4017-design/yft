@@ -340,74 +340,6 @@ function toAssignment(row: AsgRow): Assignment {
   };
 }
 
-async function seedEgitim(sql: Sql, userId: string, birlik: string) {
-  const insanlar = [
-    ["Kerem Aydın", "48219", "Astsubay Çavuş", "Depo sorumlusu"],
-    ["Selin Kara", "51002", "Uzman Çavuş", "Haberleşme"],
-    ["Mehmet Uslu", "67331", "Er", "İç hizmet"],
-    ["Ayşe Demir", "67388", "Er", "Sıhhiye"],
-  ];
-  const personel = new Map<string, string>();
-  for (const [ad, sicil, rutbe, gorev] of insanlar) {
-    const id = crypto.randomUUID();
-    personel.set(sicil, id);
-    await sql`
-      insert into personnel (id, ad_soyad, sicil, rutbe, birlik, gorev, telefon, created_by)
-      values (${id}, ${ad}, ${sicil}, ${rutbe}, ${birlik}, ${gorev}, ${""}, ${userId})
-    `;
-  }
-
-  const stok: Array<{
-    stok: string;
-    ad: string;
-    kategori: string;
-    miktar: number;
-    konum: string;
-    zimmet: Array<[string, number]>;
-  }> = [
-    { stok: "YFT-B-014", ad: "4 kişilik kamp çadırı", kategori: "Barınma", miktar: 12, konum: "Raf A1", zimmet: [["51002", 1]] },
-    { stok: "YFT-B-021", ad: "Uyku tulumu", kategori: "Barınma", miktar: 40, konum: "Raf A2", zimmet: [["67331", 1]] },
-    { stok: "YFT-G-008", ad: "Matara 1 litre", kategori: "Genel", miktar: 80, konum: "Raf B1", zimmet: [["67331", 1], ["67388", 1]] },
-    { stok: "YFT-H-003", ad: "Eğitim el telsizi", kategori: "Haberleşme", miktar: 16, konum: "Kasa 1", zimmet: [["48219", 1]] },
-    { stok: "YFT-M-002", ad: "Kamp mutfak seti", kategori: "Mutfak", miktar: 4, konum: "Raf C1", zimmet: [] },
-    { stok: "YFT-S-011", ad: "İlk yardım çantası", kategori: "Sıhhiye", miktar: 10, konum: "Raf D1", zimmet: [["48219", 1], ["67388", 1]] },
-    { stok: "YFT-A-006", ad: "El feneri", kategori: "Aydınlatma", miktar: 30, konum: "Raf B3", zimmet: [["48219", 1]] },
-    { stok: "YFT-G-019", ad: "Katlanır masa", kategori: "Genel", miktar: 8, konum: "Raf C4", zimmet: [] },
-  ];
-
-  let sira = 100;
-  for (const kalem of stok) {
-    const id = crypto.randomUUID();
-    await sql`
-      insert into materials (id, stok_no, ad, kategori, miktar, birim, durum, konum, aciklama, created_by)
-      values (${id}, ${kalem.stok}, ${kalem.ad}, ${kalem.kategori}, ${kalem.miktar}, ${"adet"}, ${"saglam"},
-              ${kalem.konum}, ${"Kurulum eğitim stoğu"}, ${userId})
-    `;
-    for (const [sicil, miktar] of kalem.zimmet) {
-      const pid = personel.get(sicil);
-      if (!pid) continue;
-      sira += 1;
-      const aid = crypto.randomUUID();
-      const belge = `ZM-2026-${String(sira).padStart(4, "0")}`;
-      await sql`
-        insert into assignments
-          (id, material_id, personnel_id, miktar, durum, notlar, belge_no, assigned_at, assigned_by)
-        values
-          (${aid}, ${id}, ${pid}, ${miktar}, ${"aktif"}, ${"Kurulum örneği"}, ${belge}, ${"2026-10-02"}, ${userId})
-      `;
-      await logHareket(sql, {
-        assignmentId: aid,
-        action: "zimmet",
-        materialId: id,
-        personnelId: pid,
-        miktar,
-        actorId: userId,
-        notlar: "Kurulum örneği",
-      });
-    }
-  }
-}
-
 async function hesapAc(ad: string, sicil: string, sifre: string): Promise<string> {
   const { hashPassword } = await import("better-auth/crypto");
   const sql = await getSql();
@@ -457,7 +389,6 @@ export const foundUnit = createServerFn({ method: "POST" })
       values (${context.userId}, ${"komutan"}, ${data.adSoyad}, ${data.rutbe}, ${data.sicil},
               ${data.birlik}, ${"Kol komutanı"}, ${JSON.stringify(TAM_YETKI)})
     `;
-    await seedEgitim(sql, context.userId, data.birlik);
     return { ok: true as const };
   });
 

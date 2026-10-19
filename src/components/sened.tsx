@@ -4,6 +4,25 @@ import { Button } from "./ui";
 
 type Veren = { adSoyad: string; rutbe: string; gorev: string };
 
+export function yazdirBelge() {
+  const kaynak = document.getElementById("zimmet-senedi");
+  if (!kaynak) return;
+  const kopya = kaynak.cloneNode(true) as HTMLElement;
+  kopya.id = "yazdir-kopya";
+  document.body.appendChild(kopya);
+  const temizle = () => {
+    kopya.remove();
+    window.removeEventListener("afterprint", temizle);
+    window.matchMedia("print").removeEventListener("change", izle);
+  };
+  const izle = (olay: MediaQueryListEvent) => {
+    if (!olay.matches) temizle();
+  };
+  window.addEventListener("afterprint", temizle);
+  window.matchMedia("print").addEventListener("change", izle);
+  window.print();
+}
+
 export function Sened({
   birlik,
   kisi,
@@ -24,7 +43,7 @@ export function Sened({
   return (
     <div className="sened-ekran fixed inset-0 z-50 overflow-auto bg-white">
       <div className="no-print flex gap-2 border-b border-ink/10 px-4 py-3">
-        <Button type="button" onClick={() => window.print()}>Yazdır / PDF</Button>
+        <Button type="button" onClick={yazdirBelge}>PDF / Yazdır</Button>
         <Button type="button" variant="ghost" onClick={onClose}>Kapat</Button>
       </div>
       <article id="zimmet-senedi" className="mx-auto max-w-5xl px-4 py-6 text-[11px] text-black">

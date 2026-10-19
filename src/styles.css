@@ -36,12 +36,21 @@
   body {
     background: white;
   }
-  #zimmet-senedi {
-    border: none;
+  body > *:not(#yazdir-kopya) {
+    display: none !important;
   }
-  .sened-ekran {
+  #yazdir-kopya {
+    display: block !important;
     position: static !important;
-    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: white !important;
+    color: black !important;
   }
+}
+
+#yazdir-kopya {
+  display: none;
 }

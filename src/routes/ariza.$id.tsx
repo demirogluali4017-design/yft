@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/shell";
 import { Button } from "@/components/ui";
+import { yazdirBelge } from "@/components/sened";
 import { getFaultReport } from "@/lib/zimmet/api";
 import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 
@@ -28,7 +29,7 @@ function Rapor({ id }: { id: string }) {
     <div>
       <div className="no-print mb-4 flex gap-2">
         <Link to="/ariza" className="inline-flex h-11 items-center px-3 text-sm text-ink/60">Arızaya dön</Link>
-        <Button type="button" onClick={() => window.print()}>Yazdır / PDF</Button>
+        <Button type="button" onClick={yazdirBelge}>PDF / Yazdır</Button>
       </div>
       <article id="zimmet-senedi">
         <p className="text-xs uppercase tracking-widest text-ink/50">{data.birlik}</p>

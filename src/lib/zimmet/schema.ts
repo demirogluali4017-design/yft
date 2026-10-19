@@ -86,7 +86,7 @@ export const kurulumSchema = z.object({
 
 export const girisSchema = z.object({
   kullanici: z.string().trim().min(3, "Kullanıcı adı veya sicil gerekli.").max(80),
-  sifre: z.string().min(8, "Şifre en az 8 karakter.").max(72),
+  sifre: z.string().min(6, "Şifre en az 6 karakter.").max(72),
 });
 
 export const erisimSchema = z.object({

@@ -25,17 +25,11 @@ export function Giris() {
       <aside className="bg-field px-6 py-10 text-paper">
         <p className="font-display text-5xl font-semibold tracking-wide">Envanter</p>
         <h1 className="mt-3 font-display text-3xl leading-none tracking-wide">Malzeme ve zimmet</h1>
-        <p className="mt-4 max-w-xs text-sm text-paper/80">
-          Kol envanteri, zimmet ve el senedi. Personel yalnız kendi üzerindeki malzemeyi görür.
-        </p>
       </aside>
       <section className="flex items-center px-6 py-10">
         <div className="w-full max-w-md">
           <h2 className="mb-6 font-display text-3xl font-semibold tracking-wide">Giriş</h2>
           <GirisForm />
-          <p className="mt-6 text-sm text-ink/60">
-            Kullanıcı adı sicil numarasıdır. Hesabı kol komutanı açar. Herkes kendi birliğini kuramaz.
-          </p>
         </div>
       </section>
     </main>

@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AppShell, useInvalidate, useWorkspaceQuery } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
-import { assignZimmet, listMaterials, listPersonnel, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
-import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi } from "@/lib/zimmet/labels";
+import { assignZimmet, getMaterial, listMaterials, listPersonnel, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
+import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi, tarih } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
 
 export const Route = createFileRoute("/envanter")({ component: Page });
@@ -28,6 +28,7 @@ function Envanter() {
   const [kategori, setKategori] = useState("tumu");
   const [acik, setAcik] = useState(false);
   const [zimmet, setZimmet] = useState<Material | null>(null);
+  const [detay, setDetay] = useState<Material | null>(null);
   const invalidate = useInvalidate();
   const zimmetYetkisi =
     oturum?.profile?.role === "komutan" ||
@@ -117,7 +118,14 @@ function Envanter() {
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.miktar}</td>
-                <td className="px-3 py-2 text-right tabular-nums">{m.zimmetli}</td>
+                <td className="px-3 py-2 text-right">
+                  <span className="tabular-nums">{m.zimmetli}</span>
+                  {m.zimmetli > 0 ? (
+                    <button type="button" className="mt-1 block text-xs font-semibold underline" onClick={() => setDetay(m)}>
+                      Zimmet detay
+                    </button>
+                  ) : null}
+                </td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.musait}</td>
                 <td className="px-3 py-2 text-right">
                   {zimmetYetkisi && !m.deleted && m.durum === "saglam" && m.musait > 0 ? (
@@ -138,7 +146,64 @@ function Envanter() {
         }}
       />
       <ZimmetDialog mal={zimmet} onClose={() => setZimmet(null)} />
+      <ZimmetDetay mal={detay} onClose={() => setDetay(null)} />
     </div>
+  );
+}
+
+function ZimmetDetay({ mal, onClose }: { mal: Material | null; onClose: () => void }) {
+  const sorgu = useQuery({
+    queryKey: ["zimmet", "malzeme", mal?.id, "detay"],
+    queryFn: () => getMaterial({ data: mal!.id }),
+    enabled: !!mal,
+  });
+  const kayitlar = sorgu.data?.zimmetler ?? [];
+  const acik = kayitlar.filter((z) => z.durum === "aktif");
+  const eski = kayitlar.filter((z) => z.durum !== "aktif");
+  return (
+    <Dialog open={!!mal} title="Zimmet detayı" onClose={onClose}>
+      {mal ? (
+        <p className="text-sm text-ink/70">
+          {mal.ad}
+          {mal.seriNo ? ` · seri ${mal.seriNo}` : ""}
+          {mal.stokNo ? ` · stok ${mal.stokNo}` : ""}
+        </p>
+      ) : null}
+      {sorgu.isLoading ? <p className="mt-4 text-sm text-ink/60">Yükleniyor</p> : null}
+      {sorgu.error ? <p className="mt-4 text-signal">{hataMetni(sorgu.error)}</p> : null}
+      {!sorgu.isLoading && acik.length === 0 && eski.length === 0 ? (
+        <p className="mt-4 text-sm text-ink/60">Zimmet kaydı yok.</p>
+      ) : null}
+      {acik.length > 0 ? (
+        <ul className="mt-4 divide-y divide-ink/10 border border-ink/10 text-sm">
+          {acik.map((z) => (
+            <li key={z.id} className="px-3 py-2">
+              <p className="font-semibold">{z.rutbe} {z.personelAd}</p>
+              <p className="text-ink/70">Sicil {z.sicil} · {z.miktar} {z.birim}</p>
+              <p className="text-ink/60">Zimmet tarihi {tarih(z.assignedAt)}{z.belgeNo ? ` · belge ${z.belgeNo}` : ""}</p>
+              {z.notlar ? <p className="text-ink/60">{z.notlar}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {eski.length > 0 ? (
+        <>
+          <h3 className="mt-5 text-sm font-semibold">Eski zimmetler</h3>
+          <ul className="mt-2 divide-y divide-ink/10 border border-ink/10 text-sm">
+            {eski.map((z) => (
+              <li key={z.id} className="px-3 py-2">
+                <p className="font-semibold">{z.rutbe} {z.personelAd}</p>
+                <p className="text-ink/70">Sicil {z.sicil} · {z.miktar} {z.birim} · iade edildi</p>
+                <p className="text-ink/60">
+                  Zimmet {tarih(z.assignedAt)} · iade {tarih(z.returnedAt)}
+                  {z.belgeNo ? ` · belge ${z.belgeNo}` : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </Dialog>
   );
 }
 

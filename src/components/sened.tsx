@@ -1,5 +1,4 @@
 import type { Assignment, Personnel } from "@/lib/zimmet/api";
-import { tarih } from "@/lib/zimmet/labels";
 import { Button } from "./ui";
 
 type Veren = { adSoyad: string; rutbe: string; gorev: string };
@@ -24,11 +23,7 @@ export function yazdirBelge() {
 }
 
 export function Sened({
-  birlik,
-  kisi,
   zimmetler,
-  gun,
-  veren,
   onClose,
 }: {
   birlik: string;
@@ -56,13 +51,13 @@ export function Sened({
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Taşınır Malın Birliği :</td>
-              <td className="border border-black px-2 py-1" colSpan={2}>{birlik}</td>
+              <td className="border border-black px-2 py-1" colSpan={2} />
               <td className="border border-black px-2 py-1 font-semibold">Rapor Tarihi:</td>
-              <td className="border border-black px-2 py-1">{tarih(gun)}</td>
+              <td className="border border-black px-2 py-1" />
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Teslim Alan Kısım/Birim:</td>
-              <td className="border border-black px-2 py-1" colSpan={4}>{birlik}</td>
+              <td className="border border-black px-2 py-1" colSpan={4} />
             </tr>
             <tr>
               <th colSpan={5} className="border border-black px-2 py-1 text-center font-semibold">
@@ -109,18 +104,18 @@ export function Sened({
             </tr>
             <tr>
               <td className="border border-black px-2">Adı ve Soyadı</td>
-              <td className="border border-black px-2 font-semibold">{veren?.adSoyad.toLocaleUpperCase("tr")}</td>
-              <td className="border border-black px-2 font-semibold">{kisi.adSoyad.toLocaleUpperCase("tr")}</td>
+              <td className="border border-black px-2" />
+              <td className="border border-black px-2" />
             </tr>
             <tr>
               <td className="border border-black px-2">Rütbesi</td>
-              <td className="border border-black px-2">{veren?.rutbe}</td>
-              <td className="border border-black px-2">{kisi.rutbe}</td>
+              <td className="border border-black px-2" />
+              <td className="border border-black px-2" />
             </tr>
             <tr>
               <td className="border border-black px-2">Görevi</td>
-              <td className="border border-black px-2">{veren?.gorev}</td>
-              <td className="border border-black px-2">{kisi.gorev}</td>
+              <td className="border border-black px-2" />
+              <td className="border border-black px-2" />
             </tr>
           </tbody>
         </table>

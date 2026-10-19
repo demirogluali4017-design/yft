@@ -68,7 +68,7 @@ const sicil = z
   .trim()
   .min(3, "Sicil en az 3 karakter.")
   .max(20, "Sicil çok uzun.")
-  .regex(/^[A-Za-z0-9]+$/, "Sicil yalnızca harf ve rakam olabilir.");
+  .regex(/^[A-Za-z0-9./-]+$/, "Sicil harf, rakam, nokta, tire veya bölü olabilir.");
 
 const sifreOpsiyon = z
   .string()
@@ -186,7 +186,8 @@ export type PersonelInput = z.infer<typeof personelSchema>;
 export type KalemInput = z.infer<typeof kalemSchema>;
 
 export function kullaniciEpostasi(deger: string): string {
-  return `${deger.trim().toLowerCase()}@yft.birlik`;
+  const yerel = deger.trim().toLowerCase().replaceAll("/", "-");
+  return `${yerel}@yft.birlik`;
 }
 
 export function girisEpostasi(kullanici: string): string {

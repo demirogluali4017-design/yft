@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AppShell, useInvalidate } from "@/components/shell";
+import { AppShell, useInvalidate, useWorkspaceQuery } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
-import { listMaterials, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
+import { assignZimmet, listMaterials, listPersonnel, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
 import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
 
@@ -22,10 +22,20 @@ function Page() {
 
 function Envanter() {
   const liste = useQuery({ queryKey: ["zimmet", "malzeme"], queryFn: () => listMaterials() });
+  const { data: oturum } = useWorkspaceQuery();
   const [q, setQ] = useState("");
   const [filtre, setFiltre] = useState("tumu");
+  const [kategori, setKategori] = useState("tumu");
   const [acik, setAcik] = useState(false);
+  const [zimmet, setZimmet] = useState<Material | null>(null);
   const invalidate = useInvalidate();
+  const zimmetYetkisi =
+    oturum?.profile?.role === "komutan" ||
+    (oturum?.profile?.role === "yetkili" && oturum.profile.yetkiler.zimmet);
+  const kategoriler = useMemo(() => {
+    const set = new Set((liste.data?.malzemeler ?? []).map((m) => m.kategori).filter(Boolean));
+    return [...set].sort((a, b) => a.localeCompare(b, "tr"));
+  }, [liste.data]);
 
   const satirlar = useMemo(() => {
     const hepsi = liste.data?.malzemeler ?? [];
@@ -38,10 +48,11 @@ function Envanter() {
       if (filtre === "beklemede" && m.durum !== "arizali" && m.durum !== "tamirde") return false;
       if (filtre === "arsiv" && m.durum !== "kayip" && m.durum !== "hurda" && !m.deleted) return false;
       if (filtre === "kritik" && !(m.durum === "saglam" && m.musait === 0 && !m.deleted)) return false;
+      if (kategori !== "tumu" && m.kategori !== kategori) return false;
       if (!aranan) return true;
       return [m.ad, m.stokNo, m.seriNo, m.kategori, m.konum].join(" ").toLocaleLowerCase("tr").includes(aranan);
     });
-  }, [liste.data, q, filtre]);
+  }, [liste.data, q, filtre, kategori]);
 
   return (
     <div>
@@ -52,8 +63,12 @@ function Envanter() {
         </div>
         <Button type="button" onClick={() => setAcik(true)}>Malzeme ekle</Button>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_12rem]">
+      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_11rem_11rem]">
         <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Stok, ad, seri, kategori" aria-label="Ara" />
+        <Select value={kategori} onChange={(e) => setKategori(e.target.value)} aria-label="Kategori">
+          <option value="tumu">Tüm kategoriler</option>
+          {kategoriler.map((k) => <option key={k} value={k}>{k}</option>)}
+        </Select>
         <Select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Durum">
           <option value="tumu">Tümü</option>
           <option value="dagitilabilir">Dağıtılabilir</option>
@@ -78,6 +93,7 @@ function Envanter() {
               <th className="px-3 py-2 text-right font-semibold">Zimmet miktarı</th>
               <th className="px-3 py-2 text-right font-semibold">Zimmetli</th>
               <th className="px-3 py-2 text-right font-semibold">Zimmetsiz</th>
+              <th className="px-3 py-2 font-semibold" />
             </tr>
           </thead>
           <tbody>
@@ -101,6 +117,11 @@ function Envanter() {
                 <td className="px-3 py-2 text-right tabular-nums">{m.miktar}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.zimmetli}</td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.musait}</td>
+                <td className="px-3 py-2 text-right">
+                  {zimmetYetkisi && !m.deleted && m.durum === "saglam" && m.musait > 0 ? (
+                    <Button type="button" variant="ghost" onClick={() => setZimmet(m)}>Zimmet</Button>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -114,6 +135,7 @@ function Envanter() {
           await invalidate();
         }}
       />
+      <ZimmetDialog mal={zimmet} onClose={() => setZimmet(null)} />
     </div>
   );
 }
@@ -218,6 +240,76 @@ export function MalzemeDialog({
           ) : null}
         </div>
       </form>
+    </Dialog>
+  );
+}
+
+export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: () => void }) {
+  const personel = useQuery({
+    queryKey: ["zimmet", "personel"],
+    queryFn: () => listPersonnel(),
+    enabled: !!mal,
+  });
+  const invalidate = useInvalidate();
+  const [personnelId, setPersonnelId] = useState("");
+  const [miktar, setMiktar] = useState(1);
+  const [notlar, setNotlar] = useState("");
+  const [busy, setBusy] = useState(false);
+  const kisiler = (personel.data?.personeller ?? []).filter((p) => p.aktif);
+  return (
+    <Dialog
+      open={!!mal}
+      title="Zimmet ver"
+      onClose={() => {
+        setPersonnelId("");
+        setMiktar(1);
+        setNotlar("");
+        onClose();
+      }}
+    >
+      {mal ? (
+        <form
+          className="space-y-3"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!personnelId) return toast.error("Personel seçin.");
+            if (miktar < 1 || miktar > mal.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
+            setBusy(true);
+            try {
+              const sonuc = await assignZimmet({
+                data: { personnelId, lines: [{ materialId: mal.id, miktar, notlar }] },
+              });
+              toast.success(`Zimmet yazıldı · ${sonuc.belgeNo}`);
+              setPersonnelId("");
+              setMiktar(1);
+              setNotlar("");
+              await invalidate();
+              onClose();
+            } catch (error) {
+              toast.error(hataMetni(error));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <p className="text-sm text-ink/70">{mal.ad} · zimmetsiz {mal.musait} {mal.birim}</p>
+          <Field label="Personel">
+            <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
+              <option value="">Seçin</option>
+              {kisiler.map((p) => (
+                <option key={p.id} value={p.id}>{p.rutbe} {p.adSoyad} · {p.sicil}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Miktar">
+            <TextInput type="number" min={1} max={mal.musait} value={miktar} onChange={(e) => setMiktar(Number(e.target.value))} />
+          </Field>
+          <Field label="Not">
+            <TextInput value={notlar} onChange={(e) => setNotlar(e.target.value)} />
+          </Field>
+          <Button type="submit" disabled={busy}>Zimmet ver</Button>
+        </form>
+      ) : null}
     </Dialog>
   );
 }

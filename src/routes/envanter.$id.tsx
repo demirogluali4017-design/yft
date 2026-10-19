@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { AppShell } from "@/components/shell";
+import { AppShell, useWorkspaceQuery } from "@/components/shell";
 import { Button } from "@/components/ui";
-import { MalzemeDialog } from "./envanter";
+import { MalzemeDialog, ZimmetDialog } from "./envanter";
 import { getMaterial } from "@/lib/zimmet/api";
 import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 
@@ -20,12 +20,17 @@ function Page() {
 
 function Detay({ id }: { id: string }) {
   const [duzenle, setDuzenle] = useState(false);
+  const [zimmet, setZimmet] = useState(false);
+  const { data: oturum } = useWorkspaceQuery();
   const sorgu = useQuery({ queryKey: ["zimmet", "malzeme", id], queryFn: () => getMaterial({ data: id }) });
   if (sorgu.isLoading) return <p className="text-sm text-ink/60">Yükleniyor</p>;
   if (sorgu.error) return <p className="text-signal">{hataMetni(sorgu.error)}</p>;
   const data = sorgu.data;
   if (!data) return null;
   const m = data.malzeme;
+  const zimmetYetkisi =
+    oturum?.profile?.role === "komutan" ||
+    (oturum?.profile?.role === "yetkili" && oturum.profile.yetkiler.zimmet);
   return (
     <div>
       <Link to="/envanter" className="text-sm text-ink/60">Envantere dön</Link>
@@ -34,7 +39,12 @@ function Detay({ id }: { id: string }) {
           <p className="text-xs uppercase tracking-widest text-ink/50">{m.stokNo}</p>
           <h1 className="font-display text-4xl font-semibold tracking-wide">{m.ad}</h1>
         </div>
-        <Button type="button" variant="ghost" onClick={() => setDuzenle(true)}>Düzenle</Button>
+        <div className="flex gap-2">
+          {zimmetYetkisi && !m.deleted && m.durum === "saglam" && m.musait > 0 ? (
+            <Button type="button" onClick={() => setZimmet(true)}>Zimmet ver</Button>
+          ) : null}
+          <Button type="button" variant="ghost" onClick={() => setDuzenle(true)}>Düzenle</Button>
+        </div>
       </div>
       <dl className="mt-6 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
         <Bilgi ad="Durum" deger={m.deleted ? "Düşüldü" : DURUM_AD[m.durum]} />
@@ -71,6 +81,7 @@ function Detay({ id }: { id: string }) {
         </>
       ) : null}
       <MalzemeDialog open={duzenle} kayit={m} onClose={() => setDuzenle(false)} onSaved={async () => { await sorgu.refetch(); }} />
+      <ZimmetDialog mal={zimmet ? m : null} onClose={() => setZimmet(false)} />
     </div>
   );
 }

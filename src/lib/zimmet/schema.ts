@@ -11,11 +11,17 @@ export const DURUMLAR = ["saglam", "arizali", "tamirde", "kayip", "hurda"] as co
 export type MalzemeDurum = (typeof DURUMLAR)[number];
 
 export const KATEGORILER = [
-  "Barınma",
+  "Optik",
+  "Cihaz",
   "Haberleşme",
+  "Silah",
+  "Mühimmat",
+  "Giyim",
+  "Teçhizat",
   "Sıhhiye",
+  "Barınma",
   "Mutfak",
-  "Aydınlatma",
+  "Alet",
   "Genel",
 ] as const;
 

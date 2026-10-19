@@ -1,4 +1,5 @@
 import type { Assignment, Personnel } from "@/lib/zimmet/api";
+import { tarih } from "@/lib/zimmet/labels";
 import { Button } from "./ui";
 
 type Veren = { adSoyad: string; rutbe: string; gorev: string };
@@ -24,6 +25,7 @@ export function yazdirBelge() {
 
 export function Sened({
   zimmetler,
+  gun,
   onClose,
 }: {
   birlik: string;
@@ -53,7 +55,7 @@ export function Sened({
               <td className="border border-black px-2 py-1 font-semibold">Taşınır Malın Birliği :</td>
               <td className="border border-black px-2 py-1" colSpan={2}>2'nci Komando Kolu</td>
               <td className="border border-black px-2 py-1 font-semibold">Rapor Tarihi:</td>
-              <td className="border border-black px-2 py-1" />
+              <td className="border border-black px-2 py-1">{tarih(gun)}</td>
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Teslim Alan Kısım/Birim:</td>

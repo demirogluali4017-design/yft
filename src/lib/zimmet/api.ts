@@ -445,12 +445,16 @@ export const getMaterial = createServerFn({ method: "POST" })
       notlar: string;
       kademe: string;
       muharebe: string;
-      olay: string | null;
-      created_at: string;
+      tespit: string;
+      gidis: string | null;
+      saat: string;
     }>`
       select id, durum, notlar, kademe, muharebe,
-             olay_tarihi::text as olay, to_char(created_at, 'YYYY-MM-DD') as created_at
-      from fault_logs where material_id = ${id} order by coalesce(olay_tarihi, created_at::date) desc
+             coalesce(tespit_tarihi, olay_tarihi, created_at::date)::text as tespit,
+             gidis_tarihi::text as gidis,
+             to_char(created_at at time zone 'Europe/Istanbul', 'YYYY-MM-DD HH24:MI') as saat
+      from fault_logs where material_id = ${id}
+      order by created_at desc
     `;
     return {
       malzeme: toMaterial(rows[0]),
@@ -461,7 +465,10 @@ export const getMaterial = createServerFn({ method: "POST" })
         notlar: l.notlar,
         kademe: l.kademe,
         muharebe: l.muharebe,
-        tarih: l.olay || l.created_at,
+        tarih: l.tespit,
+        tespit: l.tespit,
+        gidis: l.gidis ?? "",
+        saat: l.saat,
       })),
     };
   });
@@ -545,11 +552,9 @@ export const updateFault = createServerFn({ method: "POST" })
     if (!rows[0]) deny("Arıza kaydı bulunamadı.");
     const gidis = data.gidis || null;
     await sql`
-      update fault_logs
-      set durum = ${data.durum}, notlar = ${data.notlar ?? ""}, kademe = ${data.kademe ?? ""},
-          muharebe = ${data.muharebe}, olay_tarihi = ${data.tespit}, tespit_tarihi = ${data.tespit},
-          gidis_tarihi = ${gidis}
-      where id = ${data.id}
+      insert into fault_logs (id, material_id, durum, notlar, kademe, muharebe, olay_tarihi, tespit_tarihi, gidis_tarihi, created_by)
+      values (${crypto.randomUUID()}, ${rows[0].material_id}, ${data.durum}, ${data.notlar ?? ""}, ${data.kademe ?? ""},
+              ${data.muharebe}, ${data.tespit}, ${data.tespit}, ${gidis}, ${context.userId})
     `;
     await sql`
       update materials set durum = ${data.durum}, muharebe = ${data.muharebe}
@@ -572,10 +577,7 @@ export const repairMaterial = createServerFn({ method: "POST" })
       select id from materials where id = ${data.id} and deleted_at is null limit 1
     `;
     if (!mal[0]) deny("Malzeme bulunamadı.");
-    const eski = await sql<{ notlar: string }>`
-      select notlar from fault_logs where material_id = ${data.id} and notlar <> '' order by created_at
-    `;
-    const notlar = [...eski.map((r) => r.notlar), data.notlar, "Onarıldı. Zimmetsiz bırakıldı."].filter(Boolean).join("\n");
+    const notlar = [data.notlar, "Onarıldı. Zimmetsiz bırakıldı."].filter(Boolean).join(" ");
     const bugun = new Date().toISOString().slice(0, 10);
     await sql`update materials set durum = ${"saglam"}, muharebe = ${"eder"} where id = ${data.id}`;
     await sql`

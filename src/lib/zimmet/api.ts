@@ -957,6 +957,86 @@ export const getSened = createServerFn({ method: "POST" })
     return { birlik: await birlikAdi(sql, actor), kisi, zimmetler, tarih: new Date().toISOString().slice(0, 10) };
   });
 
+function satirAyikla(text: string): KalemInput[] {
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start < 0 || end <= start) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return [];
+  }
+  const ham = parsed as { materials?: unknown; kalemler?: unknown };
+  const liste = Array.isArray(parsed) ? parsed : ham.materials ?? ham.kalemler;
+  if (!Array.isArray(liste)) return [];
+  return liste
+    .filter((m) => m && typeof m === "object")
+    .slice(0, 40)
+    .map((m) => {
+      const row = m as Record<string, unknown>;
+      const name = String(row.name ?? row.ad ?? "").trim();
+      return {
+        name,
+        stock_no: String(row.stock_no ?? row.stok ?? "").trim(),
+        serial_no: String(row.serial_no ?? row.seri ?? "").trim(),
+        quantity: Math.max(1, num(row.quantity ?? row.miktar) || 1),
+        unit: String(row.unit ?? row.birim ?? "adet").trim() || "adet",
+        notes: String(row.notes ?? row.not ?? "").trim(),
+      };
+    })
+    .filter((m) => m.name);
+}
+
+async function geminiSatir(apiKey: string, mime: string, image: string): Promise<KalemInput[]> {
+  const models = ["gemini-3.5-flash", "gemini-3.5-flash-lite"];
+  let mesgul = false;
+  for (const model of models) {
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(25_000),
+          headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+          body: JSON.stringify({
+            generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: 'Fotoğraftaki her satırı şu JSON içinde ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Malzeme listesinde name malzeme adıdır. Kişi listesinde name ad soyaddır, rütbe ve görev notes alanına yazılır. Okunamayan alanı boş bırak. Yalnızca JSON.',
+                  },
+                  { inline_data: { mime_type: mime, data: image } },
+                ],
+              },
+            ],
+          }),
+        },
+      );
+    } catch {
+      mesgul = true;
+      continue;
+    }
+    if (res.status === 429 || res.status === 503) {
+      mesgul = true;
+      continue;
+    }
+    if (!res.ok) continue;
+    const body = (await res.json()) as {
+      candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[];
+    };
+    const parts = body.candidates?.[0]?.content?.parts ?? [];
+    const text = parts.filter((part) => !part.thought).map((part) => part.text ?? "").join("");
+    const materials = satirAyikla(text);
+    if (materials.length) return materials;
+  }
+  if (mesgul) deny("Belge okuma şu an meşgul. Biraz sonra yeniden deneyin.");
+  deny("Belgeden satır çıkarılamadı. Elle satır ekleyebilirsiniz.");
+}
+
 export const readDocument = createServerFn({ method: "POST" })
   .validator((input: unknown) => {
     const v = input as { image?: string; mime?: string };
@@ -972,58 +1052,7 @@ export const readDocument = createServerFn({ method: "POST" })
     const actor = requireStaff(await loadActor(sql, context.userId), "belge");
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) deny("Belge okuma bu ortamda kullanılamıyor.");
-    const res = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },
-          systemInstruction: {
-            parts: [
-              {
-                text: "Türkçe el senedi ve envanter kâğıtlarından kalem çıkarırsın. Yalnızca JSON döndür. Uydurma.",
-              },
-            ],
-          },
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: 'Fotoğraftaki malzemeleri şu şemada ver: {"materials":[{"name":"","stock_no":"","serial_no":"","quantity":1,"unit":"adet","notes":""}]}. Okunamayan alanı boş bırak.',
-                },
-                { inline_data: { mime_type: data.mime, data: data.image } },
-              ],
-            },
-          ],
-        }),
-      },
-    );
-    if (!res.ok) deny("Belge okunamadı. Fotoğrafı netleştirip yeniden deneyin.");
-    const body = (await res.json()) as {
-      candidates?: { content?: { parts?: { text?: string }[] } }[];
-    };
-    const text = body.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("") ?? "";
-    const jsonText = text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-    let materials: KalemInput[] = [];
-    try {
-      const parsed = JSON.parse(jsonText) as { materials?: KalemInput[] };
-      materials = (parsed.materials ?? [])
-        .filter((m) => m && typeof m.name === "string" && m.name.trim())
-        .slice(0, 40)
-        .map((m) => ({
-          name: String(m.name).trim(),
-          stock_no: String(m.stock_no ?? "").trim(),
-          serial_no: String(m.serial_no ?? "").trim(),
-          quantity: Math.max(1, num(m.quantity) || 1),
-          unit: String(m.unit || "adet").trim() || "adet",
-          notes: String(m.notes ?? "").trim(),
-        }));
-    } catch {
-      deny("Belgeden satır çıkarılamadı. Elle satır ekleyebilirsiniz.");
-    }
-    if (!materials.length) deny("Okunabilir kalem bulunamadı.");
+    const materials = await geminiSatir(apiKey, data.mime, data.image);
     const id = crypto.randomUUID();
     await sql`
       insert into documents (id, doc_type, extracted, durum, created_by)

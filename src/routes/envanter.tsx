@@ -180,7 +180,7 @@ function ZimmetDetay({ mal, onClose }: { mal: Material | null; onClose: () => vo
             <li key={z.id} className="px-3 py-2">
               <p className="font-semibold">{z.rutbe} {z.personelAd}</p>
               <p className="text-ink/70">Sicil {z.sicil} · {z.miktar} {z.birim}</p>
-              <p className="text-ink/60">Zimmet tarihi {tarih(z.assignedAt)}{z.belgeNo ? ` · belge ${z.belgeNo}` : ""}</p>
+              <p className="text-ink/60">Zimmet tarihi {tarih(z.assignedAt)}{z.yapanAd ? ` · yapan ${z.yapanAd}` : ""}{z.belgeNo ? ` · belge ${z.belgeNo}` : ""}</p>
               {z.notlar ? <p className="text-ink/60">{z.notlar}</p> : null}
             </li>
           ))}
@@ -196,6 +196,7 @@ function ZimmetDetay({ mal, onClose }: { mal: Material | null; onClose: () => vo
                 <p className="text-ink/70">Sicil {z.sicil} · {z.miktar} {z.birim} · iade edildi</p>
                 <p className="text-ink/60">
                   Zimmet {tarih(z.assignedAt)} · iade {tarih(z.returnedAt)}
+                  {z.yapanAd ? ` · yapan ${z.yapanAd}` : ""}
                   {z.belgeNo ? ` · belge ${z.belgeNo}` : ""}
                 </p>
               </li>

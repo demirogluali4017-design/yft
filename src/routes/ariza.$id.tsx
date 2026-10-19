@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useInvalidate } from "@/components/shell";
 import { Button, Field, TextInput } from "@/components/ui";
 import { yazdirBelge } from "@/components/sened";
-import { getFaultReport, updateFault } from "@/lib/zimmet/api";
+import { getFaultReport, repairMaterial, updateFault } from "@/lib/zimmet/api";
 import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 import { DURUMLAR } from "@/lib/zimmet/schema";
 
@@ -90,17 +90,21 @@ function Rapor({ id }: { id: string }) {
           </table>
         )}
       </article>
-      {log ? <Guncelle key={log.id} log={log} secili={secili || log.id} loglar={data.loglar} onSec={setSecili} /> : null}
+      {log ? <Guncelle key={log.id} malzemeId={id} malzemeDurum={m.durum} log={log} secili={secili || log.id} loglar={data.loglar} onSec={setSecili} /> : null}
     </div>
   );
 }
 
 function Guncelle({
+  malzemeId,
+  malzemeDurum,
   log,
   loglar,
   secili,
   onSec,
 }: {
+  malzemeId: string;
+  malzemeDurum: string;
   log: Log;
   loglar: Log[];
   secili: string;
@@ -161,7 +165,27 @@ function Guncelle({
       <Field label="Tespit tarihi"><TextInput type="date" value={tespit} onChange={(e) => setTespit(e.target.value)} required /></Field>
       <Field label="Gidiş tarihi"><TextInput type="date" value={gidis} onChange={(e) => setGidis(e.target.value)} /></Field>
       <Field label="Arıza notu"><TextInput value={not} onChange={(e) => setNot(e.target.value)} /></Field>
-      <Button type="submit">Güncelle</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit">Güncelle</Button>
+        {malzemeDurum === "arizali" || malzemeDurum === "tamirde" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={async () => {
+              if (!window.confirm("Onarıldı olarak işaretlensin mi? Üzerindeki zimmet kalkar, malzeme zimmetsiz olur. Notlar geçmişte kalır.")) return;
+              try {
+                const sonuc = await repairMaterial({ data: { id: malzemeId, notlar: not } });
+                toast.success(sonuc.cekilen > 0 ? `Onarıldı. ${sonuc.cekilen} zimmet çekildi.` : "Onarıldı. Malzeme zimmetsiz.");
+                await invalidate();
+              } catch (error) {
+                toast.error(hataMetni(error));
+              }
+            }}
+          >
+            Onarıldı
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

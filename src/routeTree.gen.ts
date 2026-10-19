@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArizaRouteImport } from './routes/ariza'
 import { Route as EnvanterRouteImport } from './routes/envanter'
+import { Route as GecmisRouteImport } from './routes/gecmis'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OkumaRouteImport } from './routes/okuma'
 import { Route as PersonelRouteImport } from './routes/personel'
@@ -37,6 +38,11 @@ const ArizaRoute = ArizaRouteImport.update({
 const EnvanterRoute = EnvanterRouteImport.update({
   id: '/envanter',
   path: '/envanter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GecmisRoute = GecmisRouteImport.update({
+  id: '/gecmis',
+  path: '/gecmis',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
+  '/gecmis': typeof GecmisRoute
   '/login': typeof LoginRoute
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
+  '/gecmis': typeof GecmisRoute
   '/login': typeof LoginRoute
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
+  '/gecmis': typeof GecmisRoute
   '/login': typeof LoginRoute
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ariza'
     | '/envanter'
+    | '/gecmis'
     | '/login'
     | '/okuma'
     | '/personel'
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ariza'
     | '/envanter'
+    | '/gecmis'
     | '/login'
     | '/okuma'
     | '/personel'
@@ -182,6 +193,7 @@ export interface FileRouteTypes {
     | '/'
     | '/ariza'
     | '/envanter'
+    | '/gecmis'
     | '/login'
     | '/okuma'
     | '/personel'
@@ -199,6 +211,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ArizaRoute: typeof ArizaRouteWithChildren
   EnvanterRoute: typeof EnvanterRouteWithChildren
+  GecmisRoute: typeof GecmisRoute
   LoginRoute: typeof LoginRoute
   OkumaRoute: typeof OkumaRoute
   PersonelRoute: typeof PersonelRouteWithChildren
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/envanter'
       fullPath: '/envanter'
       preLoaderRoute: typeof EnvanterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gecmis': {
+      id: '/gecmis'
+      path: '/gecmis'
+      fullPath: '/gecmis'
+      preLoaderRoute: typeof GecmisRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ArizaRoute: ArizaRouteWithChildren,
   EnvanterRoute: EnvanterRouteWithChildren,
+  GecmisRoute: GecmisRoute,
   LoginRoute: LoginRoute,
   OkumaRoute: OkumaRoute,
   PersonelRoute: PersonelRouteWithChildren,

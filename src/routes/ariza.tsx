@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, useInvalidate } from "@/components/shell";
 import { Button, Empty, Field, TextInput } from "@/components/ui";
-import { listFaults, listMaterials, setMaterialStatus } from "@/lib/zimmet/api";
+import { listFaults, listMaterials, listOpenFaults, setMaterialStatus } from "@/lib/zimmet/api";
+import { yazdirBelge } from "@/components/sened";
 import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 
 export const Route = createFileRoute("/ariza")({ component: Page });
@@ -49,6 +50,11 @@ function Ariza() {
   const liste = useQuery({
     queryKey: ["zimmet", "ariza", aranan],
     queryFn: () => listFaults({ data: aranan }),
+  });
+  const acikAriza = useQuery({
+    queryKey: ["zimmet", "ariza-acik"],
+    queryFn: () => listOpenFaults(),
+    enabled: !ekle,
   });
 
   return (
@@ -137,6 +143,46 @@ function Ariza() {
         </form>
       ) : (
         <>
+          <article id="zimmet-senedi" className="mt-6">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-display text-2xl font-semibold">Arızalı malzeme listesi</h2>
+              <Button type="button" variant="ghost" onClick={yazdirBelge}>Raporu yazdır</Button>
+            </div>
+            <p className="mt-1 text-sm text-ink/60">Şu an arızalı veya tamirde olanlar. Onarınca listeden düşer, notlar kayıtta kalır.</p>
+            {(acikAriza.data?.liste.length ?? 0) === 0 && !acikAriza.isLoading ? (
+              <p className="mt-3 text-sm text-ink/60">Şu an arızalı malzeme yok.</p>
+            ) : null}
+            <div className="mt-3 overflow-x-auto border border-ink/10">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
+                  <tr>
+                    <th className="px-3 py-2">Malzeme</th>
+                    <th className="px-3 py-2">Seri</th>
+                    <th className="px-3 py-2">Tespit</th>
+                    <th className="px-3 py-2">Gidiş</th>
+                    <th className="px-3 py-2">Kademe</th>
+                    <th className="px-3 py-2">Not</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {acikAriza.data?.liste.map((m) => (
+                    <tr key={m.id} className="border-t border-ink/10">
+                      <td className="px-3 py-2">
+                        <Link to="/ariza/$id" params={{ id: m.id }} className="font-semibold hover:underline">{m.ad}</Link>
+                        <span className="block text-ink/50">{m.stokNo} · {m.miktar} {m.birim} · {DURUM_AD[m.durum as keyof typeof DURUM_AD] ?? m.durum}</span>
+                      </td>
+                      <td className="px-3 py-2">{m.seriNo || "—"}</td>
+                      <td className="px-3 py-2 tabular-nums">{m.tespit ? tarih(m.tespit) : "—"}</td>
+                      <td className="px-3 py-2 tabular-nums">{m.gidis ? tarih(m.gidis) : "—"}</td>
+                      <td className="px-3 py-2">{m.kademe || "—"}</td>
+                      <td className="px-3 py-2">{m.notlar || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+          <h2 className="mt-8 font-display text-2xl font-semibold">Arıza kayıtları</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-[1fr_10rem_10rem_auto]">
             <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad, seri veya stok" aria-label="Ara" />
             <TextInput type="date" value={bas} onChange={(e) => setBas(e.target.value)} aria-label="Başlangıç" />

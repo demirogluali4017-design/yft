@@ -113,16 +113,20 @@ export type Assignment = {
   belgeNo: string;
   assignedAt: string;
   returnedAt: string | null;
+  yapanAd: string;
 };
 
 export type Hareket = {
   id: string;
   action: string;
   malzeme: string;
+  seriNo: string;
   personel: string;
+  sicil: string;
   miktar: number;
   tarih: string;
   notlar: string;
+  yapan: string;
 };
 
 export type FaultRow = Material & { sonNot: string };
@@ -293,10 +297,12 @@ const ASSIGNMENT_SELECT = `
   select a.id, a.material_id, a.personnel_id, a.miktar, a.durum, a.notlar, a.belge_no,
          a.assigned_at::text as assigned_at, a.returned_at::text as returned_at,
          m.ad as malzeme_ad, m.stok_no, m.seri_no, m.birim, m.durum as malzeme_durum,
-         p.ad_soyad as personel_ad, p.rutbe, p.sicil
+         p.ad_soyad as personel_ad, p.rutbe, p.sicil,
+         coalesce(yapan.ad_soyad, '') as yapan_ad
   from assignments a
   join materials m on m.id = a.material_id
   join personnel p on p.id = a.personnel_id
+  left join profiles yapan on yapan.user_id = a.assigned_by
 `;
 
 type AsgRow = {
@@ -317,6 +323,7 @@ type AsgRow = {
   personel_ad: string;
   rutbe: string;
   sicil: string;
+  yapan_ad: string;
 };
 
 function toAssignment(row: AsgRow): Assignment {
@@ -338,6 +345,7 @@ function toAssignment(row: AsgRow): Assignment {
     belgeNo: row.belge_no,
     assignedAt: row.assigned_at,
     returnedAt: row.returned_at,
+    yapanAd: row.yapan_ad,
   };
 }
 
@@ -548,6 +556,101 @@ export const updateFault = createServerFn({ method: "POST" })
       where id = ${rows[0].material_id}
     `;
     return { ok: true as const };
+  });
+
+export const repairMaterial = createServerFn({ method: "POST" })
+  .validator((input: unknown) => {
+    const v = (input ?? {}) as { id?: string; notlar?: string };
+    if (!v.id) deny("Kayıt yok.");
+    return { id: v.id, notlar: (v.notlar ?? "").trim().slice(0, 800) };
+  })
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
+    const sql = await getSql();
+    const actor = requireStaff(await loadActor(sql, context.userId), "envanter");
+    const mal = await sql<{ id: string }>`
+      select id from materials where id = ${data.id} and deleted_at is null limit 1
+    `;
+    if (!mal[0]) deny("Malzeme bulunamadı.");
+    const eski = await sql<{ notlar: string }>`
+      select notlar from fault_logs where material_id = ${data.id} and notlar <> '' order by created_at
+    `;
+    const notlar = [...eski.map((r) => r.notlar), data.notlar, "Onarıldı. Zimmetsiz bırakıldı."].filter(Boolean).join("\n");
+    const bugun = new Date().toISOString().slice(0, 10);
+    await sql`update materials set durum = ${"saglam"}, muharebe = ${"eder"} where id = ${data.id}`;
+    await sql`
+      insert into fault_logs (id, material_id, durum, notlar, kademe, muharebe, olay_tarihi, tespit_tarihi, created_by)
+      values (${crypto.randomUUID()}, ${data.id}, ${"saglam"}, ${notlar}, ${""}, ${"eder"}, ${bugun}, ${bugun}, ${actor.userId})
+    `;
+    const acik = await sql<{ id: string; personnel_id: string; miktar: number }>`
+      select id, personnel_id, miktar from assignments where material_id = ${data.id} and durum = 'aktif'
+    `;
+    for (const z of acik) {
+      await sql`update assignments set durum = 'iade', returned_at = current_date where id = ${z.id}`;
+      await logHareket(sql, {
+        assignmentId: z.id,
+        action: "iade",
+        materialId: data.id,
+        personnelId: z.personnel_id,
+        miktar: num(z.miktar),
+        actorId: actor.userId,
+        notlar: "Onarım sonrası zimmetsiz",
+      });
+    }
+    return { ok: true as const, cekilen: acik.length };
+  });
+
+export const listOpenFaults = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const sql = await getSql();
+    requireStaff(await loadActor(sql, context.userId), "envanter");
+    const rows = await sql<{
+      id: string;
+      ad: string;
+      stok_no: string;
+      seri_no: string;
+      miktar: number;
+      birim: string;
+      durum: string;
+      kademe: string;
+      notlar: string;
+      muharebe: string;
+      tespit: string | null;
+      gidis: string | null;
+    }>`
+      select m.id, m.ad, m.stok_no, m.seri_no, m.miktar, m.birim, m.durum,
+             coalesce(f.kademe, '') as kademe, coalesce(f.notlar, '') as notlar,
+             coalesce(f.muharebe, m.muharebe) as muharebe,
+             coalesce(f.tespit_tarihi, f.olay_tarihi)::text as tespit,
+             f.gidis_tarihi::text as gidis
+      from materials m
+      left join lateral (
+        select kademe, notlar, muharebe, tespit_tarihi, olay_tarihi, gidis_tarihi
+        from fault_logs
+        where material_id = m.id
+        order by coalesce(tespit_tarihi, olay_tarihi, created_at::date) desc
+        limit 1
+      ) f on true
+      where m.deleted_at is null and m.durum in ('arizali', 'tamirde')
+      order by m.ad
+    `;
+    return {
+      liste: rows.map((r) => ({
+        id: r.id,
+        ad: r.ad,
+        stokNo: r.stok_no,
+        seriNo: r.seri_no,
+        miktar: num(r.miktar),
+        birim: r.birim,
+        durum: r.durum,
+        kademe: r.kademe,
+        notlar: r.notlar,
+        muharebe: r.muharebe,
+        tespit: r.tespit ?? "",
+        gidis: r.gidis ?? "",
+      })),
+    };
   });
 
 export const addFaultyMaterial = createServerFn({ method: "POST" })
@@ -1239,48 +1342,71 @@ export const getReport = createServerFn({ method: "GET" })
     };
   });
 
-async function hareketlerGetir(sql: Sql, personnelId: string | null): Promise<Hareket[]> {
-  const rows = personnelId
-    ? await sql<{
-        id: string;
-        action: string;
-        malzeme: string;
-        personel: string;
-        miktar: number;
-        tarih: string;
-        notlar: string;
-      }>`
-        select h.id, h.action, m.ad as malzeme, p.ad_soyad as personel, h.miktar,
-               to_char(h.created_at, 'YYYY-MM-DD') as tarih, h.notlar
-        from assignment_history h
-        join materials m on m.id = h.material_id
-        join personnel p on p.id = h.personnel_id
-        where h.personnel_id = ${personnelId}
-        order by h.created_at desc limit 12
-      `
-    : await sql<{
-        id: string;
-        action: string;
-        malzeme: string;
-        personel: string;
-        miktar: number;
-        tarih: string;
-        notlar: string;
-      }>`
-        select h.id, h.action, m.ad as malzeme, p.ad_soyad as personel, h.miktar,
-               to_char(h.created_at, 'YYYY-MM-DD') as tarih, h.notlar
-        from assignment_history h
-        join materials m on m.id = h.material_id
-        join personnel p on p.id = h.personnel_id
-        order by h.created_at desc limit 12
-      `;
+async function hareketlerGetir(sql: Sql, personnelId: string | null, limit = 12): Promise<Hareket[]> {
+  const rows = await sql.query<{
+    id: string;
+    action: string;
+    malzeme: string;
+    seri_no: string;
+    personel: string;
+    sicil: string;
+    miktar: number;
+    tarih: string;
+    notlar: string;
+    yapan: string;
+  }>(
+    `select h.id, h.action, m.ad as malzeme, coalesce(m.seri_no, '') as seri_no,
+            p.ad_soyad as personel, p.sicil, h.miktar, h.notlar,
+            to_char(h.created_at at time zone 'Europe/Istanbul', 'YYYY-MM-DD HH24:MI') as tarih,
+            coalesce(yapan.ad_soyad, '') as yapan
+     from assignment_history h
+     join materials m on m.id = h.material_id
+     join personnel p on p.id = h.personnel_id
+     left join profiles yapan on yapan.user_id = h.actor_user_id
+     ${personnelId ? "where h.personnel_id = $1" : ""}
+     order by h.created_at desc
+     limit ${Math.min(Math.max(limit, 1), 500)}`,
+    personnelId ? [personnelId] : [],
+  );
   return rows.map((h) => ({
     id: h.id,
     action: h.action,
     malzeme: h.malzeme,
+    seriNo: h.seri_no,
     personel: h.personel,
+    sicil: h.sicil,
     miktar: num(h.miktar),
     tarih: h.tarih,
     notlar: h.notlar,
+    yapan: h.yapan,
   }));
 }
+
+export const listZimmetGecmisi = createServerFn({ method: "POST" })
+  .validator((input: unknown) => {
+    const v = (input ?? {}) as { personnelId?: string; q?: string };
+    return {
+      personnelId: (v.personnelId ?? "").slice(0, 80),
+      q: (v.q ?? "").trim().slice(0, 80),
+    };
+  })
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
+    const sql = await getSql();
+    const actor = requireUser(await loadActor(sql, context.userId));
+    let personnelId = data.personnelId;
+    if (actor.role === "personel") {
+      personnelId = (await kendiPersonelId(sql, actor.userId)) ?? "";
+      if (!personnelId) return { hareketler: [] as Hareket[] };
+    } else if (!staff(actor, "zimmet") && !staff(actor, "personel") && !staff(actor, "envanter")) {
+      deny("Bu işlem için yetkiniz yok.");
+    }
+    let hareketler = await hareketlerGetir(sql, personnelId || null, 400);
+    if (data.q) {
+      const arama = data.q.toLocaleLowerCase("tr");
+      hareketler = hareketler.filter((h) =>
+        [h.malzeme, h.seriNo, h.personel, h.sicil, h.yapan, h.notlar].join(" ").toLocaleLowerCase("tr").includes(arama),
+      );
+    }
+    return { hareketler };
+  });

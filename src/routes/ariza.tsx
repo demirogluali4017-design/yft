@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, useInvalidate } from "@/components/shell";
 import { Button, Empty, Field, TextInput } from "@/components/ui";
-import { addFaultyMaterial, listFaults } from "@/lib/zimmet/api";
+import { listFaults, listMaterials, setMaterialStatus } from "@/lib/zimmet/api";
 import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 
 export const Route = createFileRoute("/ariza")({ component: Page });
@@ -24,8 +24,26 @@ function Ariza() {
   const [aranan, setAranan] = useState({ q: "", bas: "", bit: "" });
   const [ekle, setEkle] = useState(false);
   const [muharebe, setMuharebe] = useState<"eder" | "edemez">("edemez");
-  const [form, setForm] = useState({ ad: "", stokNo: "", seriNo: "", miktar: "1", birim: "adet", kademe: "", tarih: "", notlar: "" });
+  const [ara, setAra] = useState("");
+  const [secim, setSecim] = useState("");
+  const [kademe, setKademe] = useState("");
+  const [gun, setGun] = useState("");
+  const [not, setNot] = useState("");
   const invalidate = useInvalidate();
+  const envanter = useQuery({
+    queryKey: ["zimmet", "malzeme"],
+    queryFn: () => listMaterials(),
+    enabled: ekle,
+  });
+  const adaylar = useMemo(() => {
+    const hepsi = (envanter.data?.malzemeler ?? []).filter((m) => !m.deleted);
+    const arama = ara.trim().toLocaleLowerCase("tr");
+    const suzulmus = arama
+      ? hepsi.filter((m) => [m.ad, m.stokNo, m.seriNo, m.kategori].join(" ").toLocaleLowerCase("tr").includes(arama))
+      : hepsi;
+    return suzulmus.slice(0, 30);
+  }, [envanter.data, ara]);
+  const secilen = (envanter.data?.malzemeler ?? []).find((m) => m.id === secim);
   const liste = useQuery({
     queryKey: ["zimmet", "ariza", aranan],
     queryFn: () => listFaults({ data: aranan }),
@@ -37,7 +55,7 @@ function Ariza() {
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-wide">Arızalı malzeme</h1>
           <p className="mt-1 max-w-xl text-sm text-ink/60">
-            Tarih, seri numarası veya adla arayın. Yeni kayıt envantere arızalı olarak eklenir.
+            Envanterden malzemeyi seçin. Ad, stok ve seri oradan gelir.
           </p>
         </div>
         <Button type="button" onClick={() => setEkle((v) => !v)}>{ekle ? "Liste" : "Malzeme ekle"}</Button>
@@ -48,22 +66,25 @@ function Ariza() {
           className="mt-4 max-w-xl space-y-3 border border-ink/10 p-4"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (!secilen) return toast.error("Envanterden malzeme seçin.");
+            if (kademe.trim().length < 2) return toast.error("Kademe yazın.");
+            if (gun.length < 8) return toast.error("Tarih seçin.");
             try {
-              await addFaultyMaterial({
+              await setMaterialStatus({
                 data: {
-                  ad: form.ad,
-                  stokNo: form.stokNo,
-                  seriNo: form.seriNo,
-                  miktar: Number(form.miktar),
-                  birim: form.birim,
-                  kademe: form.kademe,
-                  tarih: form.tarih,
-                  notlar: form.notlar,
+                  id: secilen.id,
+                  durum: "arizali",
+                  kademe,
+                  tarih: gun,
+                  notlar: not,
                   muharebe,
                 },
               });
-              toast.success("Arızalı olarak envantere alındı");
+              toast.success("Arızalı olarak işaretlendi");
               setEkle(false);
+              setSecim("");
+              setKademe("");
+              setNot("");
               await invalidate();
             } catch (error) {
               toast.error(hataMetni(error));
@@ -74,18 +95,38 @@ function Ariza() {
             <Button type="button" variant={muharebe === "eder" ? "solid" : "ghost"} onClick={() => setMuharebe("eder")}>Muharebe eder</Button>
             <Button type="button" variant={muharebe === "edemez" ? "solid" : "ghost"} onClick={() => setMuharebe("edemez")}>Muharebe edemez</Button>
           </div>
-          <Field label="Ad"><TextInput value={form.ad} onChange={(e) => setForm({ ...form, ad: e.target.value })} required /></Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Stok no"><TextInput value={form.stokNo} onChange={(e) => setForm({ ...form, stokNo: e.target.value })} /></Field>
-            <Field label="Seri no"><TextInput value={form.seriNo} onChange={(e) => setForm({ ...form, seriNo: e.target.value })} /></Field>
+          <Field label="Envanterde ara">
+            <TextInput value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Ad, stok veya seri" />
+          </Field>
+          <div className="max-h-52 overflow-y-auto border border-ink/10 text-sm">
+            {envanter.isLoading ? <p className="px-3 py-2 text-ink/60">Yükleniyor</p> : null}
+            {adaylar.length === 0 && !envanter.isLoading ? <p className="px-3 py-2 text-ink/60">Malzeme yok.</p> : null}
+            {adaylar.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`block w-full px-3 py-2 text-left ${m.id === secim ? "bg-field text-paper" : "hover:bg-ink/5"}`}
+                onClick={() => setSecim(m.id)}
+              >
+                <span className="font-semibold">{m.ad}</span>
+                <span className="block text-xs opacity-80">
+                  {m.stokNo}{m.seriNo ? ` · seri ${m.seriNo}` : ""} · {m.miktar} {m.birim} · {DURUM_AD[m.durum]}
+                </span>
+              </button>
+            ))}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Miktar"><TextInput type="number" min={1} value={form.miktar} onChange={(e) => setForm({ ...form, miktar: e.target.value })} /></Field>
-            <Field label="Birim"><TextInput value={form.birim} onChange={(e) => setForm({ ...form, birim: e.target.value })} /></Field>
-          </div>
-          <Field label="Kademe"><TextInput value={form.kademe} onChange={(e) => setForm({ ...form, kademe: e.target.value })} placeholder="Örn. 2. kademe" required /></Field>
-          <Field label="Gidiş tarihi"><TextInput type="date" value={form.tarih} onChange={(e) => setForm({ ...form, tarih: e.target.value })} required /></Field>
-          <Field label="Arıza notu"><TextInput value={form.notlar} onChange={(e) => setForm({ ...form, notlar: e.target.value })} /></Field>
+          {!ara && (envanter.data?.malzemeler.length ?? 0) > 30 ? (
+            <p className="text-xs text-ink/50">İlk 30 malzeme görünüyor. Ad, stok veya seri yazarak bulun.</p>
+          ) : null}
+          {secilen ? (
+            <p className="text-sm text-ink/70">
+              Seçilen: {secilen.ad} · stok {secilen.stokNo}
+              {secilen.seriNo ? ` · seri ${secilen.seriNo}` : ""} · {secilen.miktar} {secilen.birim}
+            </p>
+          ) : null}
+          <Field label="Kademe"><TextInput value={kademe} onChange={(e) => setKademe(e.target.value)} placeholder="Örn. 2. kademe" required /></Field>
+          <Field label="Gidiş tarihi"><TextInput type="date" value={gun} onChange={(e) => setGun(e.target.value)} required /></Field>
+          <Field label="Arıza notu"><TextInput value={not} onChange={(e) => setNot(e.target.value)} /></Field>
           <Button type="submit">Kaydet</Button>
         </form>
       ) : (

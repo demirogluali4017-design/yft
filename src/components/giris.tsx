@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,7 +20,6 @@ export function MarkaBekleme() {
 }
 
 export function Giris() {
-  const [kurulum, setKurulum] = useState(false);
   return (
     <main className="grid min-h-screen md:grid-cols-[18rem_1fr]">
       <aside className="bg-field px-6 py-10 text-paper">
@@ -33,17 +31,10 @@ export function Giris() {
       </aside>
       <section className="flex items-center px-6 py-10">
         <div className="w-full max-w-md">
-          <div className="mb-6 flex gap-2">
-            <button type="button" className={kurulum ? "h-11 px-3 text-sm text-ink/60" : "h-11 border-b-2 border-field px-3 text-sm font-semibold"} onClick={() => setKurulum(false)}>
-              Giriş
-            </button>
-            <button type="button" className={kurulum ? "h-11 border-b-2 border-field px-3 text-sm font-semibold" : "h-11 px-3 text-sm text-ink/60"} onClick={() => setKurulum(true)}>
-              Birliği kur
-            </button>
-          </div>
-          {kurulum ? <KurulumForm kayitli={false} /> : <GirisForm />}
+          <h2 className="mb-6 font-display text-3xl font-semibold tracking-wide">Giriş</h2>
+          <GirisForm />
           <p className="mt-6 text-sm text-ink/60">
-            Hazır kullanıcı yok. İlk kez giren kol komutanı Birliği kur sekmesinde sicil ve şifresini kendisi yazar. Personelin kullanıcı adı sicil numarasıdır. Şifreyi komutan Personel ekranından verir.
+            Kullanıcı adı sicil numarasıdır. Hesabı kol komutanı açar. Herkes kendi birliğini kuramaz.
           </p>
         </div>
       </section>

@@ -989,7 +989,7 @@ function satirAyikla(text: string): KalemInput[] {
 }
 
 async function geminiSatir(apiKey: string, mime: string, image: string): Promise<KalemInput[]> {
-  const models = ["gemini-3.5-flash", "gemini-3.5-flash-lite"];
+  const models = ["gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash"];
   let mesgul = false;
   for (const model of models) {
     let res: Response;
@@ -998,7 +998,7 @@ async function geminiSatir(apiKey: string, mime: string, image: string): Promise
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         {
           method: "POST",
-          signal: AbortSignal.timeout(25_000),
+          signal: AbortSignal.timeout(18_000),
           headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
           body: JSON.stringify({
             generationConfig: { temperature: 0, maxOutputTokens: 4096, responseMimeType: "application/json" },

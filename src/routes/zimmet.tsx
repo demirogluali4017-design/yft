@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, useInvalidate } from "@/components/shell";
 import { Sened } from "@/components/sened";
@@ -45,6 +45,7 @@ function Zimmet() {
   const [personnelId, setPersonnelId] = useState("");
   const [belgeKisi, setBelgeKisi] = useState("");
   const [materialId, setMaterialId] = useState("");
+  const [grupAnahtar, setGrupAnahtar] = useState("");
   const [miktar, setMiktar] = useState(1);
   const [notlar, setNotlar] = useState("");
   const [sepet, setSepet] = useState<Array<{ materialId: string; ad: string; miktar: number; notlar: string }>>([]);
@@ -52,6 +53,16 @@ function Zimmet() {
   const [sened, setSened] = useState<Awaited<ReturnType<typeof getSened>> | null>(null);
 
   const saglam = (malzeme.data?.malzemeler ?? []).filter((m) => !m.deleted && m.durum === "saglam" && m.musait > 0);
+  const gruplar = useMemo(() => {
+    const map = new Map<string, typeof saglam>();
+    for (const m of saglam) {
+      const key = `${m.stokNo}||${m.ad}`;
+      map.set(key, [...(map.get(key) ?? []), m]);
+    }
+    return [...map.entries()].map(([key, rows]) => ({ key, ad: rows[0].ad, stokNo: rows[0].stokNo, rows }));
+  }, [saglam]);
+  const grup = gruplar.find((g) => g.key === grupAnahtar);
+  const seriVar = !!grup?.rows.some((m) => m.seriNo);
   const kisiler = (personel.data?.personeller ?? []).filter((p) => p.aktif);
   const tamamenBos = (malzeme.data?.malzemeler ?? []).filter((m) => !m.deleted && m.zimmetli === 0);
   const kismenBos = (malzeme.data?.malzemeler ?? []).filter((m) => !m.deleted && m.zimmetli > 0 && m.musait > 0);
@@ -81,13 +92,33 @@ function Zimmet() {
               </Select>
             </Field>
             <Field label="Malzeme">
-              <Select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+              <Select
+                value={grupAnahtar}
+                onChange={(e) => {
+                  const key = e.target.value;
+                  setGrupAnahtar(key);
+                  const bulunan = gruplar.find((g) => g.key === key);
+                  if (!bulunan) return setMaterialId("");
+                  const coklu = bulunan.rows.some((m) => m.seriNo) && bulunan.rows.length > 1;
+                  setMaterialId(coklu ? "" : bulunan.rows[0].id);
+                }}
+              >
                 <option value="">Seçin</option>
-                {saglam.map((m) => (
-                  <option key={m.id} value={m.id}>{m.ad} · zimmetsiz {m.musait}</option>
+                {gruplar.map((g) => (
+                  <option key={g.key} value={g.key}>{g.ad} · {g.stokNo}</option>
                 ))}
               </Select>
             </Field>
+            {seriVar ? (
+              <Field label="Seri no">
+                <Select value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+                  <option value="">Seçin</option>
+                  {grup?.rows.map((m) => (
+                    <option key={m.id} value={m.id}>{m.seriNo || "Seri yok"} · zimmetsiz {m.musait}</option>
+                  ))}
+                </Select>
+              </Field>
+            ) : null}
             <Field label="Miktar">
               <TextInput type="number" min={1} value={miktar} onChange={(e) => setMiktar(Number(e.target.value))} />
             </Field>
@@ -101,9 +132,10 @@ function Zimmet() {
             className="mt-3"
             onClick={() => {
               const mal = saglam.find((m) => m.id === materialId);
-              if (!mal) return toast.error("Malzeme seçin.");
+              if (!mal) return toast.error(seriVar ? "Seri no seçin." : "Malzeme seçin.");
               if (miktar < 1 || miktar > mal.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
-              setSepet((s) => [...s, { materialId: mal.id, ad: mal.ad, miktar, notlar }]);
+              const ad = mal.seriNo ? `${mal.ad} · ${mal.seriNo}` : mal.ad;
+              setSepet((s) => [...s, { materialId: mal.id, ad, miktar, notlar }]);
               setNotlar("");
             }}
           >

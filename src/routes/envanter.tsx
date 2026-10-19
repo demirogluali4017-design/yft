@@ -252,37 +252,50 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
     queryFn: () => listPersonnel(),
     enabled: !!mal,
   });
+  const malzemeler = useQuery({
+    queryKey: ["zimmet", "malzeme"],
+    queryFn: () => listMaterials(),
+    enabled: !!mal,
+  });
   const invalidate = useInvalidate();
   const [personnelId, setPersonnelId] = useState("");
+  const [secim, setSecim] = useState("");
   const [miktar, setMiktar] = useState(1);
   const [notlar, setNotlar] = useState("");
   const [busy, setBusy] = useState(false);
   const kisiler = (personel.data?.personeller ?? []).filter((p) => p.aktif);
+  const kardes = (malzemeler.data?.malzemeler ?? []).filter(
+    (m) => mal && !m.deleted && m.durum === "saglam" && m.musait > 0 && m.stokNo === mal.stokNo && m.ad === mal.ad,
+  );
+  const seriVar = kardes.some((m) => m.seriNo);
+  const hedef = kardes.find((m) => m.id === secim) ?? kardes.find((m) => m.id === mal?.id) ?? mal;
   return (
     <Dialog
       open={!!mal}
       title="Zimmet ver"
       onClose={() => {
         setPersonnelId("");
+        setSecim("");
         setMiktar(1);
         setNotlar("");
         onClose();
       }}
     >
-      {mal ? (
+      {mal && hedef ? (
         <form
           className="space-y-3"
           onSubmit={async (e) => {
             e.preventDefault();
             if (!personnelId) return toast.error("Personel seçin.");
-            if (miktar < 1 || miktar > mal.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
+            if (miktar < 1 || miktar > hedef.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
             setBusy(true);
             try {
               const sonuc = await assignZimmet({
-                data: { personnelId, lines: [{ materialId: mal.id, miktar, notlar }] },
+                data: { personnelId, lines: [{ materialId: hedef.id, miktar, notlar }] },
               });
               toast.success(`Zimmet yazıldı · ${sonuc.belgeNo}`);
               setPersonnelId("");
+              setSecim("");
               setMiktar(1);
               setNotlar("");
               await invalidate();
@@ -294,7 +307,16 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
             }
           }}
         >
-          <p className="text-sm text-ink/70">{mal.ad} · zimmetsiz {mal.musait} {mal.birim}</p>
+          <p className="text-sm text-ink/70">{hedef.ad} · zimmetsiz {hedef.musait} {hedef.birim}</p>
+          {seriVar ? (
+            <Field label="Seri no">
+              <Select value={hedef.id} onChange={(e) => setSecim(e.target.value)}>
+                {kardes.map((m) => (
+                  <option key={m.id} value={m.id}>{m.seriNo || "Seri yok"} · zimmetsiz {m.musait}</option>
+                ))}
+              </Select>
+            </Field>
+          ) : null}
           <Field label="Personel">
             <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
               <option value="">Seçin</option>
@@ -304,7 +326,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
             </Select>
           </Field>
           <Field label="Miktar">
-            <TextInput type="number" min={1} max={mal.musait} value={miktar} onChange={(e) => setMiktar(Number(e.target.value))} />
+            <TextInput type="number" min={1} max={hedef.musait} value={miktar} onChange={(e) => setMiktar(Number(e.target.value))} />
           </Field>
           <Field label="Not">
             <TextInput value={notlar} onChange={(e) => setNotlar(e.target.value)} />

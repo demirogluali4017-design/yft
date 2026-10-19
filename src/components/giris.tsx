@@ -13,8 +13,8 @@ export function MarkaBekleme() {
   return (
     <main className="grid min-h-screen place-items-center bg-paper px-6 text-ink">
       <div>
-        <p className="font-display text-5xl font-semibold tracking-wide">YFT</p>
-        <p className="mt-2 text-sm text-ink/60">Zimmet defteri açılıyor</p>
+        <p className="font-display text-5xl font-semibold tracking-wide">Envanter</p>
+        <p className="mt-2 text-sm text-ink/60">Açılıyor</p>
       </div>
     </main>
   );
@@ -25,8 +25,8 @@ export function Giris() {
   return (
     <main className="grid min-h-screen md:grid-cols-[18rem_1fr]">
       <aside className="bg-field px-6 py-10 text-paper">
-        <p className="font-display text-5xl font-semibold tracking-wide">YFT</p>
-        <h1 className="mt-3 font-display text-3xl leading-none tracking-wide">Zimmet defteri</h1>
+        <p className="font-display text-5xl font-semibold tracking-wide">Envanter</p>
+        <h1 className="mt-3 font-display text-3xl leading-none tracking-wide">Malzeme ve zimmet</h1>
         <p className="mt-4 max-w-xs text-sm text-paper/80">
           Kol envanteri, zimmet ve el senedi. Personel yalnız kendi üzerindeki malzemeyi görür.
         </p>
@@ -42,7 +42,9 @@ export function Giris() {
             </button>
           </div>
           {kurulum ? <KurulumForm kayitli={false} /> : <GirisForm />}
-          <p className="mt-6 text-sm text-ink/60">Personel kullanıcı adı sicil numarasıdır.</p>
+          <p className="mt-6 text-sm text-ink/60">
+            Hazır kullanıcı yok. İlk kez giren kol komutanı Birliği kur sekmesinde sicil ve şifresini kendisi yazar. Personelin kullanıcı adı sicil numarasıdır. Şifreyi komutan Personel ekranından verir.
+          </p>
         </div>
       </section>
     </main>

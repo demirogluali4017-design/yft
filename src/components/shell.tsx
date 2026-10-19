@@ -73,7 +73,7 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
     return (
       <main className="min-h-screen bg-paper">
         <div className="mx-auto max-w-lg px-4 py-10">
-          <p className="font-display text-4xl font-semibold tracking-wide">YFT</p>
+          <p className="font-display text-4xl font-semibold tracking-wide">Envanter</p>
           {data?.komutanVar ? <ErisimForm /> : <KurulumForm kayitli />}
         </div>
       </main>
@@ -106,7 +106,7 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
   const menu = (
     <>
       <div className={acik || cekmece ? "px-5 py-6" : "px-2 py-4 text-center"}>
-        <p className="font-display text-4xl font-semibold leading-none tracking-wide">{acik || cekmece ? "YFT" : "Y"}</p>
+        <p className="font-display text-4xl font-semibold leading-none tracking-wide">{acik || cekmece ? "Envanter" : "E"}</p>
         {acik || cekmece ? (
           <>
             <p className="mt-1 text-xs uppercase tracking-widest text-paper/70">Stok ve zimmet</p>

@@ -31,22 +31,22 @@ export function Sened({
         <table className="w-full border-collapse border border-black">
           <tbody>
             <tr>
-              <th colSpan={7} className="border border-black px-2 py-1 text-center text-sm font-bold tracking-wide">
+              <th colSpan={5} className="border border-black px-2 py-1 text-center text-sm font-bold tracking-wide">
                 TAŞINIR MAL TESLİM TESELLÜM AYRINTI BELGESİ
               </th>
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Taşınır Malın Birliği :</td>
-              <td className="border border-black px-2 py-1" colSpan={4}>{birlik}</td>
+              <td className="border border-black px-2 py-1" colSpan={2}>{birlik}</td>
               <td className="border border-black px-2 py-1 font-semibold">Rapor Tarihi:</td>
               <td className="border border-black px-2 py-1">{tarih(gun)}</td>
             </tr>
             <tr>
               <td className="border border-black px-2 py-1 font-semibold">Teslim Alan Kısım/Birim:</td>
-              <td className="border border-black px-2 py-1" colSpan={6}>{birlik}</td>
+              <td className="border border-black px-2 py-1" colSpan={4}>{birlik}</td>
             </tr>
             <tr>
-              <th colSpan={7} className="border border-black px-2 py-1 text-center font-semibold">
+              <th colSpan={5} className="border border-black px-2 py-1 text-center font-semibold">
                 Zimmetlenen Seri Numarası / Kafile Listesi
               </th>
             </tr>
@@ -55,8 +55,6 @@ export function Sened({
               <th className="w-36 border border-black px-1 py-1">Stok No.</th>
               <th className="border border-black px-1 py-1">Cins ve Özellikleri</th>
               <th className="w-28 border border-black px-1 py-1">Seri Numarası</th>
-              <th className="w-24 border border-black px-1 py-1">Şim Eskim Numarası</th>
-              <th className="w-24 border border-black px-1 py-1">Son Kullanma Tarihi</th>
               <th className="w-16 border border-black px-1 py-1">Miktar</th>
             </tr>
             {zimmetler.map((z, i) => (
@@ -65,16 +63,12 @@ export function Sened({
                 <td className="border border-black px-1">{z.stokNo}</td>
                 <td className="border border-black px-1">{z.malzemeAd}</td>
                 <td className="border border-black px-1">{z.seriNo}</td>
-                <td className="border border-black px-1" />
-                <td className="border border-black px-1" />
                 <td className="border border-black px-1 text-center">{z.miktar} {z.birim === "adet" ? "AD" : z.birim.toLocaleUpperCase("tr")}</td>
               </tr>
             ))}
             {bos.map((n) => (
               <tr key={`bos-${n}`} className="h-8">
                 <td className="border border-black px-1 text-center">{zimmetler.length + n + 1}</td>
-                <td className="border border-black" />
-                <td className="border border-black" />
                 <td className="border border-black" />
                 <td className="border border-black" />
                 <td className="border border-black" />

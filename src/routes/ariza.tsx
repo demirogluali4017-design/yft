@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -10,9 +10,10 @@ import { DURUM_AD, hataMetni, tarih } from "@/lib/zimmet/labels";
 export const Route = createFileRoute("/ariza")({ component: Page });
 
 function Page() {
+  const detay = useRouterState({ select: (s) => s.location.pathname.startsWith("/ariza/") });
   return (
     <AppShell need="envanter">
-      <Ariza />
+      {detay ? <Outlet /> : <Ariza />}
     </AppShell>
   );
 }
@@ -27,7 +28,8 @@ function Ariza() {
   const [ara, setAra] = useState("");
   const [secim, setSecim] = useState("");
   const [kademe, setKademe] = useState("");
-  const [gun, setGun] = useState("");
+  const [tespit, setTespit] = useState("");
+  const [gidis, setGidis] = useState("");
   const [not, setNot] = useState("");
   const invalidate = useInvalidate();
   const envanter = useQuery({
@@ -68,14 +70,15 @@ function Ariza() {
             e.preventDefault();
             if (!secilen) return toast.error("Envanterden malzeme seçin.");
             if (kademe.trim().length < 2) return toast.error("Kademe yazın.");
-            if (gun.length < 8) return toast.error("Tarih seçin.");
+            if (tespit.length < 8) return toast.error("Tespit tarihi gerekli.");
             try {
               await setMaterialStatus({
                 data: {
                   id: secilen.id,
                   durum: "arizali",
                   kademe,
-                  tarih: gun,
+                  tespit,
+                  gidis: gidis || undefined,
                   notlar: not,
                   muharebe,
                 },
@@ -84,6 +87,8 @@ function Ariza() {
               setEkle(false);
               setSecim("");
               setKademe("");
+              setTespit("");
+              setGidis("");
               setNot("");
               await invalidate();
             } catch (error) {
@@ -125,7 +130,8 @@ function Ariza() {
             </p>
           ) : null}
           <Field label="Kademe"><TextInput value={kademe} onChange={(e) => setKademe(e.target.value)} placeholder="Örn. 2. kademe" required /></Field>
-          <Field label="Gidiş tarihi"><TextInput type="date" value={gun} onChange={(e) => setGun(e.target.value)} required /></Field>
+          <Field label="Tespit tarihi"><TextInput type="date" value={tespit} onChange={(e) => setTespit(e.target.value)} required /></Field>
+          <Field label="Gidiş tarihi"><TextInput type="date" value={gidis} onChange={(e) => setGidis(e.target.value)} /></Field>
           <Field label="Arıza notu"><TextInput value={not} onChange={(e) => setNot(e.target.value)} /></Field>
           <Button type="submit">Kaydet</Button>
         </form>
@@ -142,16 +148,16 @@ function Ariza() {
           {(liste.data?.kayitlar.length ?? 0) === 0 && !liste.isLoading ? <div className="mt-6"><Empty>Bu aramada arıza kaydı yok.</Empty></div> : null}
           <ul className="mt-4 divide-y divide-ink/10 border border-ink/10 text-sm">
             {liste.data?.kayitlar.map((k) => (
-              <li key={k.id} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3">
-                <div>
-                  <Link to="/ariza/$id" params={{ id: k.materialId }} className="font-semibold hover:underline">{k.ad}</Link>
-                  <p className="text-ink/60">
-                    {tarih(k.tarih)} · {k.kademe || "kademe yazılmamış"} · seri {k.seriNo || "—"} · {DURUM_AD[k.durum as keyof typeof DURUM_AD] ?? k.durum}
-                    {k.muharebe === "eder" ? " · muharebe eder" : k.muharebe === "edemez" ? " · muharebe edemez" : ""}
-                  </p>
-                </div>
-                <Link to="/ariza/$id" params={{ id: k.materialId }} className="inline-flex h-11 items-center border border-ink/15 px-3 font-semibold">
-                  Rapor
+              <li key={k.id}>
+                <Link to="/ariza/$id" params={{ id: k.materialId }} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3 hover:bg-ink/5">
+                  <div>
+                    <p className="font-semibold">{k.ad}</p>
+                    <p className="text-ink/60">
+                      Tespit {tarih(k.tespit)}{k.gidis ? ` · Gidiş ${tarih(k.gidis)}` : ""} · {k.kademe || "kademe yazılmamış"} · seri {k.seriNo || "—"} · {DURUM_AD[k.durum as keyof typeof DURUM_AD] ?? k.durum}
+                      {k.muharebe === "eder" ? " · muharebe eder" : k.muharebe === "edemez" ? " · muharebe edemez" : ""}
+                    </p>
+                  </div>
+                  <span className="inline-flex h-11 items-center border border-ink/15 px-3 font-semibold">Rapor</span>
                 </Link>
               </li>
             ))}

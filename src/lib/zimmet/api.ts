@@ -6,6 +6,7 @@ import {
   TAM_YETKI,
   YOK_YETKI,
   arizaEkleSchema,
+  arizaGuncelleSchema,
   belgeKararSchema,
   durumSchema,
   erisimSchema,
@@ -514,10 +515,37 @@ export const setMaterialStatus = createServerFn({ method: "POST" })
     const rows = await sql<{ id: string }>`select id from materials where id = ${data.id} and deleted_at is null limit 1`;
     if (!rows[0]) deny("Malzeme bulunamadı.");
     await sql`update materials set durum = ${data.durum}, muharebe = ${data.muharebe ?? ""} where id = ${data.id}`;
+    const tespit = data.tespit;
+    const gidis = data.gidis || null;
     await sql`
-      insert into fault_logs (id, material_id, durum, notlar, kademe, muharebe, olay_tarihi, created_by)
+      insert into fault_logs (id, material_id, durum, notlar, kademe, muharebe, olay_tarihi, tespit_tarihi, gidis_tarihi, created_by)
       values (${crypto.randomUUID()}, ${data.id}, ${data.durum}, ${data.notlar ?? ""}, ${data.kademe ?? ""},
-              ${data.muharebe ?? ""}, ${data.tarih || null}, ${actor.userId})
+              ${data.muharebe ?? ""}, ${tespit}, ${tespit}, ${gidis}, ${actor.userId})
+    `;
+    return { ok: true as const };
+  });
+
+export const updateFault = createServerFn({ method: "POST" })
+  .validator((input: unknown) => parseInput(arizaGuncelleSchema, input))
+  .middleware([authMiddleware])
+  .handler(async ({ data, context }) => {
+    const sql = await getSql();
+    requireStaff(await loadActor(sql, context.userId), "envanter");
+    const rows = await sql<{ id: string; material_id: string }>`
+      select id, material_id from fault_logs where id = ${data.id} limit 1
+    `;
+    if (!rows[0]) deny("Arıza kaydı bulunamadı.");
+    const gidis = data.gidis || null;
+    await sql`
+      update fault_logs
+      set durum = ${data.durum}, notlar = ${data.notlar ?? ""}, kademe = ${data.kademe ?? ""},
+          muharebe = ${data.muharebe}, olay_tarihi = ${data.tespit}, tespit_tarihi = ${data.tespit},
+          gidis_tarihi = ${gidis}
+      where id = ${data.id}
+    `;
+    await sql`
+      update materials set durum = ${data.durum}, muharebe = ${data.muharebe}
+      where id = ${rows[0].material_id}
     `;
     return { ok: true as const };
   });
@@ -566,11 +594,11 @@ export const listFaults = createServerFn({ method: "POST" })
     }
     if (data.bas) {
       params.push(data.bas);
-      where += ` and coalesce(f.olay_tarihi, f.created_at::date) >= $${params.length}::date`;
+      where += ` and coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date) >= $${params.length}::date`;
     }
     if (data.bit) {
       params.push(data.bit);
-      where += ` and coalesce(f.olay_tarihi, f.created_at::date) <= $${params.length}::date`;
+      where += ` and coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date) <= $${params.length}::date`;
     }
     const rows = await sql.query<{
       id: string;
@@ -582,14 +610,16 @@ export const listFaults = createServerFn({ method: "POST" })
       kademe: string;
       muharebe: string;
       notlar: string;
-      tarih: string;
+      tespit: string;
+      gidis: string | null;
     }>(
       `select f.id, f.material_id, m.ad, m.stok_no, m.seri_no, f.durum, f.kademe, f.muharebe, f.notlar,
-              coalesce(f.olay_tarihi, f.created_at::date)::text as tarih
+              coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date)::text as tespit,
+              f.gidis_tarihi::text as gidis
        from fault_logs f
        join materials m on m.id = f.material_id
        ${where}
-       order by coalesce(f.olay_tarihi, f.created_at::date) desc, m.ad
+       order by coalesce(f.tespit_tarihi, f.olay_tarihi, f.created_at::date) desc, m.ad
        limit 200`,
       params,
     );
@@ -604,7 +634,9 @@ export const listFaults = createServerFn({ method: "POST" })
         kademe: r.kademe,
         muharebe: r.muharebe,
         notlar: r.notlar,
-        tarih: r.tarih,
+        tarih: r.tespit,
+        tespit: r.tespit,
+        gidis: r.gidis ?? "",
       })),
     };
   });
@@ -623,12 +655,14 @@ export const getFaultReport = createServerFn({ method: "POST" })
       notlar: string;
       kademe: string;
       muharebe: string;
-      tarih: string;
+      tespit: string;
+      gidis: string | null;
     }>`
       select id, durum, notlar, kademe, muharebe,
-             coalesce(olay_tarihi, created_at::date)::text as tarih
+             coalesce(tespit_tarihi, olay_tarihi, created_at::date)::text as tespit,
+             gidis_tarihi::text as gidis
       from fault_logs where material_id = ${id}
-      order by coalesce(olay_tarihi, created_at::date)
+      order by coalesce(tespit_tarihi, olay_tarihi, created_at::date)
     `;
     const zimmetler = (await sql.query<AsgRow>(
       `${ASSIGNMENT_SELECT} where a.material_id = $1 and a.durum = 'aktif'`,
@@ -643,7 +677,9 @@ export const getFaultReport = createServerFn({ method: "POST" })
         notlar: l.notlar,
         kademe: l.kademe,
         muharebe: l.muharebe,
-        tarih: l.tarih,
+        tarih: l.tespit,
+        tespit: l.tespit,
+        gidis: l.gidis ?? "",
       })),
       zimmetler,
       tarih: new Date().toISOString().slice(0, 10),

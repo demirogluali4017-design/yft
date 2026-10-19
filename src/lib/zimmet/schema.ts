@@ -156,10 +156,30 @@ export const belgeKararSchema = z.object({
 export const durumSchema = z.object({
   id: z.string().min(1),
   durum: z.enum(DURUMLAR),
-  notlar: z.string().trim().max(400).optional(),
+  notlar: z.string().trim().max(800).optional(),
   kademe: z.string().trim().max(80).optional(),
   muharebe: z.enum(["eder", "edemez"]).optional(),
   tarih: z.string().trim().optional(),
+  tespit: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Tespit tarihi gerekli."),
+  gidis: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Gidiş tarihi geçersiz."),
+});
+
+export const arizaGuncelleSchema = z.object({
+  id: z.string().min(1),
+  durum: z.enum(DURUMLAR),
+  notlar: z.string().trim().max(800).optional(),
+  kademe: z.string().trim().max(80).optional(),
+  muharebe: z.enum(["eder", "edemez"]),
+  tespit: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Tespit tarihi gerekli."),
+  gidis: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Gidiş tarihi geçersiz."),
 });
 
 export const arizaEkleSchema = z.object({

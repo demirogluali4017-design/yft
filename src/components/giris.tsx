@@ -64,6 +64,10 @@ function GirisForm() {
         Giriş yap
       </Button>
     </form>
+    <a href="/Envanter.apk" download className="mt-6 block text-center text-sm font-semibold underline">
+      Android uygulamasını indir
+    </a>
+    <p className="mt-1 text-center text-xs text-ink/60">Telefona kurulur. İnternet olmadan çalışır. Kayıt siteye gitmez.</p>
   );
 }
 

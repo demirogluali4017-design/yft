@@ -47,7 +47,7 @@ export function Field({
   );
 }
 
-const control = "h-11 w-full border border-ink/15 bg-paper px-3 text-sm text-ink outline-none focus-visible:border-field";
+const control = "h-11 w-full border border-ink/15 bg-paper px-3 text-base text-ink outline-none focus-visible:border-field";
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cx(control, props.className)} />;

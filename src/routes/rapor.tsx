@@ -30,7 +30,15 @@ function Rapor() {
         <Kutu ad="Zimmetsiz" deger={data.musaitAdet} />
       </div>
       <h2 className="mt-8 font-display text-2xl font-semibold">Personel bazlı zimmet</h2>
-      <div className="mt-3 overflow-x-auto border border-ink/10">
+      <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm md:hidden">
+        {data.personelRapor.map((p) => (
+          <li key={p.id} className="px-3 py-3">
+            <Link to="/personel/$id" params={{ id: p.id }} className="font-semibold hover:underline">{p.rutbe} {p.ad}</Link>
+            <p className="text-ink/70">Sicil {p.sicil} · {p.kalem} kalem · {p.adet} adet</p>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 hidden overflow-x-auto border border-ink/10 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
             <tr>
@@ -58,7 +66,7 @@ function Rapor() {
       <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm">
         {data.arizaliListe.length === 0 ? <li className="px-3 py-3 text-ink/60">Yok.</li> : null}
         {data.arizaliListe.map((m) => (
-          <li key={m.id} className="flex justify-between px-3 py-2">
+          <li key={m.id} className="flex flex-col gap-1 px-3 py-3 sm:flex-row sm:justify-between">
             <Link to="/envanter/$id" params={{ id: m.id }} className="hover:underline">{m.ad}</Link>
             <span>{DURUM_AD[m.durum]} · zimmet {m.zimmetli}</span>
           </li>

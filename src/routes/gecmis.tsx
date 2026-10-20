@@ -43,7 +43,7 @@ function Gecmis() {
       <p className="mt-1 text-sm text-ink/60">Kimin üzerine ne girmiş, ne çıkmış. İşlemi kim, hangi tarihte yazmış.</p>
       <div className="mt-4 grid gap-3 md:grid-cols-[16rem_1fr_auto]">
         {kadro ? (
-          <select className="h-11 border border-ink/15 bg-transparent px-3 text-sm" value={kisi} onChange={(e) => setKisi(e.target.value)} aria-label="Personel">
+          <select className="h-11 border border-ink/15 bg-transparent px-3 text-base" value={kisi} onChange={(e) => setKisi(e.target.value)} aria-label="Personel">
             <option value="">Tüm personel</option>
             {(personel.data?.personeller ?? []).filter((p) => p.aktif).map((p) => (
               <option key={p.id} value={p.id}>{p.rutbe} {p.adSoyad}</option>
@@ -55,7 +55,21 @@ function Gecmis() {
       </div>
       {liste.isLoading ? <p className="mt-6 text-sm text-ink/60">Yükleniyor</p> : null}
       {liste.error ? <p className="mt-6 text-signal">{hataMetni(liste.error)}</p> : null}
-      <div className="mt-4 overflow-x-auto border border-ink/10">
+      <ul className="mt-4 divide-y divide-ink/10 border border-ink/10 text-sm md:hidden">
+        {(liste.data?.hareketler.length ?? 0) === 0 && !liste.isLoading ? (
+          <li className="px-3 py-3 text-ink/60">Kayıt yok.</li>
+        ) : null}
+        {liste.data?.hareketler.map((h) => (
+          <li key={h.id} className="px-3 py-3">
+            <p className="font-semibold">{ISLEM[h.action] ?? h.action} · {h.miktar}</p>
+            <p>{h.malzeme}{h.seriNo ? ` · ${h.seriNo}` : ""}</p>
+            <p className="text-ink/70">{h.personel}{h.yapan ? ` · yapan ${h.yapan}` : ""}</p>
+            <p className="text-ink/60">{tarih(h.tarih.slice(0, 10))} {h.tarih.slice(11)}</p>
+            {h.notlar ? <p className="text-ink/60">{h.notlar}</p> : null}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 hidden overflow-x-auto border border-ink/10 md:block">
         <table className="w-full text-left text-sm">
           <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
             <tr>

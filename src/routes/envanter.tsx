@@ -85,7 +85,33 @@ function Envanter() {
       {liste.isLoading ? <p className="mt-6 text-sm text-ink/60">Yükleniyor</p> : null}
       {liste.error ? <p className="mt-6 text-signal">{hataMetni(liste.error)}</p> : null}
       {satirlar.length === 0 && !liste.isLoading ? <div className="mt-6"><Empty>Bu filtrede malzeme yok.</Empty></div> : null}
-      <div className="mt-4 overflow-x-auto border border-ink/10">
+      <ul className="mt-4 divide-y divide-ink/10 border border-ink/10 md:hidden">
+        {satirlar.map((m) => (
+          <li key={m.id} className="space-y-2 px-3 py-3">
+            <Link to="/envanter/$id" params={{ id: m.id }} className="font-semibold underline-offset-2 hover:underline">
+              {m.ad}
+            </Link>
+            <p className="text-xs text-ink/50">
+              {m.kategori} · stok {m.stokNo}{m.seriNo ? ` · seri ${m.seriNo}` : ""}{m.konum ? ` · ${m.konum}` : ""}
+            </p>
+            <p className="text-sm">
+              {m.deleted ? "Düşüldü" : SINIF_AD[stokSinifi(m)]} · {DURUM_AD[m.durum]}
+              {m.muharebe === "eder" ? " · muharebe eder" : m.muharebe === "edemez" ? " · muharebe edemez" : ""}
+            </p>
+            <p className="text-sm">Zimmet miktarı {m.miktar} · zimmetli {m.zimmetli} · zimmetsiz {m.musait}</p>
+            <div className="flex flex-col gap-2">
+              {m.zimmetli > 0 ? (
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setDetay(m)}>Zimmet detay</Button>
+              ) : null}
+              {zimmetYetkisi && !m.deleted ? (
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setZimmet(m)}>Zimmet</Button>
+              ) : null}
+              <Button type="button" variant="ghost" className="w-full" onClick={() => setForm(m)}>Malzeme bilgi formu</Button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 hidden overflow-x-auto border border-ink/10 md:block">
         <table className="w-full min-w-2xl text-left text-sm">
           <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
             <tr>
@@ -453,7 +479,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
   const invalidate = useInvalidate();
   const [kisiAra, setKisiAra] = useState("");
   const [secili, setSecili] = useState<Record<string, number>>({});
-  const [cekilecek, setCekilecek] = useState<Record<string, boolean>>({});
+  const [cekilecek, setCekilecek] = useState<Record<string, string>>({});
   const [notlar, setNotlar] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
@@ -481,7 +507,10 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
   const uzerinde = (aciklar.data?.zimmetler ?? []).filter((z) => z.materialId === guncel?.id);
   const toplam = Object.values(secili).reduce((n, v) => n + (Number(v) || 0), 0);
   const fazla = guncel ? toplam > guncel.musait : false;
-  const cekAdet = uzerinde.filter((z) => cekilecek[z.id]).length;
+  const cekSatirlari = uzerinde
+    .map((z) => ({ id: z.id, miktar: Number(cekilecek[z.id] || 0), max: z.miktar, ad: z.personelAd }))
+    .filter((z) => z.miktar > 0);
+  const cekHata = cekSatirlari.some((z) => !Number.isFinite(z.miktar) || z.miktar < 1 || z.miktar > z.max);
 
   function sec(id: string, acik: boolean) {
     setSecili((eski) => {
@@ -524,7 +553,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                           min={1}
                           inputMode="numeric"
                           aria-label={`${p.adSoyad} miktar`}
-                          className="h-11 w-16 border border-ink/15 px-2 text-sm"
+                          className="h-11 w-20 border border-ink/15 px-2 text-base"
                           value={secili[p.id]}
                           onChange={(e) => setSecili((eski) => ({ ...eski, [p.id]: Math.max(1, Number(e.target.value) || 1) }))}
                         />
@@ -542,6 +571,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
               </Field>
               <Button
                 type="button"
+                className="w-full"
                 disabled={busy || fazla || toplam < 1}
                 onClick={() => {
                   void (async () => {
@@ -582,44 +612,49 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
           {uzerinde.length > 0 ? (
             <div className="space-y-2">
               <h3 className="text-sm font-semibold">Üzerinde olanlar</h3>
-              <ul className="max-h-48 space-y-1 overflow-auto">
+              <ul className="space-y-2">
                 {uzerinde.map((z) => (
-                  <li key={z.id}>
-                    <label className="flex items-start gap-3 border border-ink/10 px-3 py-2 text-sm">
+                  <li key={z.id} className="border border-ink/10 px-3 py-2">
+                    <p className="text-sm font-semibold">{z.rutbe} {z.personelAd}</p>
+                    <p className="text-sm text-ink/70">Üzerinde {z.miktar} {z.birim} · {z.sicil}</p>
+                    <label className="mt-2 block text-sm">
+                      <span className="mb-1 block font-semibold">Çekilecek adet</span>
                       <input
-                        type="checkbox"
-                        className="mt-1 size-5 shrink-0"
-                        checked={!!cekilecek[z.id]}
-                        onChange={(e) => setCekilecek((eski) => ({ ...eski, [z.id]: e.target.checked }))}
+                        type="number"
+                        min={1}
+                        max={z.miktar}
+                        inputMode="numeric"
+                        placeholder="Adet"
+                        aria-label={`${z.personelAd} çekilecek adet`}
+                        className="h-11 w-full border border-ink/15 px-3 text-base"
+                        value={cekilecek[z.id] ?? ""}
+                        onChange={(e) => setCekilecek((eski) => ({ ...eski, [z.id]: e.target.value }))}
                       />
-                      <span>
-                        <span className="block font-semibold">{z.rutbe} {z.personelAd}</span>
-                        <span className="text-ink/70">{z.miktar} {z.birim} · {z.sicil}</span>
-                      </span>
                     </label>
                   </li>
                 ))}
               </ul>
+              {cekHata ? <p className="text-sm text-signal">Adet, üzerindeki miktarı geçemez.</p> : null}
               <Button
                 type="button"
+                className="w-full"
                 variant="ghost"
-                disabled={busy || cekAdet < 1}
+                disabled={busy || cekSatirlari.length < 1 || cekHata}
                 onClick={() => {
                   void (async () => {
                     setBusy(true);
-                    const ids = uzerinde.filter((z) => cekilecek[z.id]).map((z) => z.id);
                     let cekilen = 0;
                     try {
-                      for (const id of ids) {
-                        await returnAssignment({ data: id });
+                      for (const satir of cekSatirlari) {
+                        await returnAssignment({ data: { id: satir.id, miktar: satir.miktar } });
                         cekilen += 1;
                       }
-                      toast.success(`${cekilen} zimmet çekildi`);
+                      toast.success(`${cekilen} kişiden zimmet çekildi`);
                       setCekilecek({});
                       await invalidate();
                     } catch (error) {
                       if (cekilen > 0) {
-                        toast.error(`${cekilen} zimmet çekildi, kalanı çekilemedi. ${hataMetni(error)}`);
+                        toast.error(`${cekilen} kişi çekildi, kalanı çekilemedi. ${hataMetni(error)}`);
                         setCekilecek({});
                         await invalidate();
                       } else {
@@ -631,7 +666,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                   })();
                 }}
               >
-                {busy ? "Çekiliyor…" : `Seçilenleri çek${cekAdet ? ` (${cekAdet})` : ""}`}
+                {busy ? "Çekiliyor…" : "Yazılan adetleri çek"}
               </Button>
             </div>
           ) : null}

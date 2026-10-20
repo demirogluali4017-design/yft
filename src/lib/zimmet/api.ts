@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn } from "@/lib/server-fn";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import {
@@ -1098,27 +1098,44 @@ export const updateAssignment = createServerFn({ method: "POST" })
   });
 
 export const returnAssignment = createServerFn({ method: "POST" })
-  .validator((id: unknown) => (typeof id === "string" && id ? id : deny("Kayıt yok.")))
+  .validator((input: unknown) => {
+    if (typeof input === "string" && input) return { id: input, miktar: 0 };
+    if (input && typeof input === "object") {
+      const satir = input as { id?: unknown; miktar?: unknown };
+      if (typeof satir.id !== "string" || !satir.id) deny("Kayıt yok.");
+      const miktar = Number(satir.miktar);
+      if (!Number.isFinite(miktar) || miktar < 1) deny("Çekilecek adeti yazın.");
+      return { id: satir.id, miktar };
+    }
+    deny("Kayıt yok.");
+  })
   .middleware([authMiddleware])
-  .handler(async ({ data: id, context }) => {
+  .handler(async ({ data, context }) => {
     const sql = await getSql();
     const actor = requireStaff(await loadActor(sql, context.userId), "zimmet");
     const rows = await sql<{ id: string; material_id: string; personnel_id: string; miktar: number; durum: string }>`
-      select id, material_id, personnel_id, miktar, durum from assignments where id = ${id} limit 1
+      select id, material_id, personnel_id, miktar, durum from assignments where id = ${data.id} limit 1
     `;
     const kayit = rows[0];
     if (!kayit || kayit.durum !== "aktif") deny("Açık zimmet bulunamadı.");
-    await sql`update assignments set durum = 'iade', returned_at = current_date where id = ${id}`;
+    const elde = num(kayit.miktar);
+    const cekilen = data.miktar > 0 ? data.miktar : elde;
+    if (cekilen > elde) deny("Üzerindeki adetten fazla çekilemez.");
+    if (cekilen === elde) {
+      await sql`update assignments set durum = 'iade', returned_at = current_date where id = ${data.id}`;
+    } else {
+      await sql`update assignments set miktar = ${elde - cekilen} where id = ${data.id}`;
+    }
     await logHareket(sql, {
-      assignmentId: id,
+      assignmentId: data.id,
       action: "iade",
       materialId: kayit.material_id,
       personnelId: kayit.personnel_id,
-      miktar: num(kayit.miktar),
+      miktar: cekilen,
       actorId: actor.userId,
-      notlar: "Zimmet çekildi",
+      notlar: cekilen === elde ? "Zimmet çekildi" : `${cekilen} adet çekildi`,
     });
-    return { ok: true as const };
+    return { ok: true as const, cekilen, kalan: elde - cekilen };
   });
 
 export const getSened = createServerFn({ method: "POST" })

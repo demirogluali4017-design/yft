@@ -152,7 +152,22 @@ function Ariza() {
             {(acikAriza.data?.liste.length ?? 0) === 0 && !acikAriza.isLoading ? (
               <p className="mt-3 text-sm text-ink/60">Şu an arızalı malzeme yok.</p>
             ) : null}
-            <div className="mt-3 overflow-x-auto border border-ink/10">
+            <ul className="mt-3 divide-y divide-ink/10 border border-ink/10 text-sm md:hidden">
+              {acikAriza.data?.liste.map((m) => (
+                <li key={m.id} className="px-3 py-3">
+                  <Link to="/ariza/$id" params={{ id: m.id }} className="font-semibold hover:underline">{m.ad}</Link>
+                  <p className="text-ink/70">
+                    {m.stokNo}{m.seriNo ? ` · seri ${m.seriNo}` : ""} · {m.miktar} {m.birim} · {DURUM_AD[m.durum as keyof typeof DURUM_AD] ?? m.durum}
+                  </p>
+                  <p className="text-ink/60">
+                    Tespit {m.tespit ? tarih(m.tespit) : "—"} {m.saat?.slice(11) || ""}
+                    {m.gidis ? ` · gidiş ${tarih(m.gidis)}` : ""} · {m.kademe || "kademe yok"}
+                  </p>
+                  {m.notlar ? <p className="text-ink/60">{m.notlar}</p> : null}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 hidden overflow-x-auto border border-ink/10 md:block">
               <table className="w-full text-left text-sm">
                 <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
                   <tr>

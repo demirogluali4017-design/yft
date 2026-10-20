@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AktarRouteImport } from './routes/aktar'
 import { Route as ArizaRouteImport } from './routes/ariza'
 import { Route as EnvanterRouteImport } from './routes/envanter'
 import { Route as GecmisRouteImport } from './routes/gecmis'
@@ -28,6 +29,11 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AktarRoute = AktarRouteImport.update({
+  id: '/aktar',
+  path: '/aktar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArizaRoute = ArizaRouteImport.update({
@@ -103,6 +109,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/aktar': typeof AktarRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
   '/gecmis': typeof GecmisRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/aktar': typeof AktarRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
   '/gecmis': typeof GecmisRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/aktar': typeof AktarRoute
   '/ariza': typeof ArizaRouteWithChildren
   '/envanter': typeof EnvanterRouteWithChildren
   '/gecmis': typeof GecmisRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aktar'
     | '/ariza'
     | '/envanter'
     | '/gecmis'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/aktar'
     | '/ariza'
     | '/envanter'
     | '/gecmis'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/aktar'
     | '/ariza'
     | '/envanter'
     | '/gecmis'
@@ -209,6 +221,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AktarRoute: typeof AktarRoute
   ArizaRoute: typeof ArizaRouteWithChildren
   EnvanterRoute: typeof EnvanterRouteWithChildren
   GecmisRoute: typeof GecmisRoute
@@ -229,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aktar': {
+      id: '/aktar'
+      path: '/aktar'
+      fullPath: '/aktar'
+      preLoaderRoute: typeof AktarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ariza': {
@@ -368,6 +388,7 @@ const PersonelRouteWithChildren = PersonelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AktarRoute: AktarRoute,
   ArizaRoute: ArizaRouteWithChildren,
   EnvanterRoute: EnvanterRouteWithChildren,
   GecmisRoute: GecmisRoute,

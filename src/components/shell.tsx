@@ -21,6 +21,7 @@ const NAV = [
   { to: "/ariza", label: "Arıza", need: "envanter" },
   { to: "/rapor", label: "Rapor", need: "envanter" },
   { to: "/yetki", label: "Yetki", need: "komutan" },
+  { to: "/aktar", label: "Veri aktar", need: "ozet", offline: true, kadro: true },
 ] as const;
 
 export function useWorkspaceQuery() {
@@ -93,7 +94,11 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
     );
   }
 
-  const links = NAV.filter((item) => gorebilir(profile, item.need));
+  const links = NAV.filter((item) => gorebilir(profile, item.need)).filter((item) => {
+    if ("offline" in item && item.offline && (typeof window === "undefined" || !window.__ENVANTER_OFFLINE__)) return false;
+    if ("kadro" in item && item.kadro && profile.role !== "komutan" && profile.role !== "yetkili") return false;
+    return true;
+  });
   const izin = gorebilir(profile, need);
 
   function menuAcKapa() {
@@ -170,6 +175,11 @@ export function AppShell({ children, need = "ozet" }: { children: ReactNode; nee
           </div>
           <UserButton />
         </header>
+        {typeof window !== "undefined" && "__ENVANTER_OFFLINE__" in window && window.__ENVANTER_OFFLINE__ ? (
+          <p className="no-print border-b border-ink/10 px-4 py-2 text-xs text-ink/70">
+            Bu kopya telefonda durur. Siteye yazılmaz. Belge okuma için internet gerekir.
+          </p>
+        ) : null}
         <div className="px-4 py-5 pb-8 md:px-8 md:pb-10">
           {izin ? children : <p className="text-signal">Bu ekran için yetkiniz yok.</p>}
         </div>

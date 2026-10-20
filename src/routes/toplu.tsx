@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, useInvalidate } from "@/components/shell";
-import { Button, Field, TextInput } from "@/components/ui";
+import { Button, Field, Select, TextInput } from "@/components/ui";
 import { listAssignments, listMaterials, listPersonnel, assignZimmet, returnAssignment } from "@/lib/zimmet/api";
-import { hataMetni } from "@/lib/zimmet/labels";
+import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi } from "@/lib/zimmet/labels";
 
 export const Route = createFileRoute("/toplu")({ component: Page });
 
@@ -47,13 +47,30 @@ function Ver() {
   const [notlar, setNotlar] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const liste = (malzemeler.data?.malzemeler ?? []).filter((m) => !m.deleted && m.durum === "saglam" && m.musait > 0);
+  const [filtre, setFiltre] = useState("tumu");
+  const [kategori, setKategori] = useState("tumu");
+
+  const hepsi = malzemeler.data?.malzemeler ?? [];
+  const kategoriler = useMemo(() => {
+    const set = new Set(hepsi.map((m) => m.kategori).filter(Boolean));
+    return [...set].sort((a, b) => a.localeCompare(b, "tr"));
+  }, [hepsi]);
   const q = ara(arama);
-  const bulunan = liste
-    .filter((m) => !q || `${m.ad} ${m.stokNo} ${m.seriNo}`.toLocaleLowerCase("tr").includes(q))
-    .sort((a, b) => b.musait - a.musait || a.ad.localeCompare(b.ad, "tr"))
-    .slice(0, 30);
-  const mal = liste.find((m) => m.id === malzemeId) ?? null;
+  const satirlar = useMemo(() => {
+    return hepsi.filter((m) => {
+      if (filtre !== "dusulen" && m.deleted) return false;
+      if (filtre === "dusulen" && !m.deleted) return false;
+      if (filtre === "dagitilabilir" && !(m.durum === "saglam" && m.musait > 0 && !m.deleted)) return false;
+      if (filtre === "zimmetli" && m.zimmetli <= 0) return false;
+      if (filtre === "beklemede" && m.durum !== "arizali" && m.durum !== "tamirde") return false;
+      if (filtre === "arsiv" && m.durum !== "kayip" && m.durum !== "hurda" && !m.deleted) return false;
+      if (filtre === "kritik" && !(m.durum === "saglam" && m.musait === 0 && !m.deleted)) return false;
+      if (kategori !== "tumu" && m.kategori !== kategori) return false;
+      if (!q) return true;
+      return [m.ad, m.stokNo, m.seriNo, m.kategori, m.konum].join(" ").toLocaleLowerCase("tr").includes(q);
+    });
+  }, [hepsi, q, filtre, kategori]);
+  const mal = hepsi.find((m) => m.id === malzemeId && !m.deleted && m.durum === "saglam" && m.musait > 0) ?? null;
   const kq = ara(kisiAra);
   const kisiler = (personel.data?.personeller ?? [])
     .filter((p) => p.aktif)
@@ -73,37 +90,38 @@ function Ver() {
   }
 
   return (
-    <div className="max-w-xl space-y-4">
-      <Field label="Malzeme ara">
-        <TextInput value={arama} placeholder="Ad, stok veya seri" onChange={(e) => setArama(e.target.value)} />
-      </Field>
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-[1fr_11rem_11rem]">
+        <Field label="Malzeme ara">
+          <TextInput value={arama} placeholder="Ad, stok veya seri" onChange={(e) => setArama(e.target.value)} />
+        </Field>
+        <Field label="Kategori">
+          <Select value={kategori} onChange={(e) => setKategori(e.target.value)} aria-label="Kategori">
+            <option value="tumu">Tüm kategoriler</option>
+            {kategoriler.map((k) => <option key={k} value={k}>{k}</option>)}
+          </Select>
+        </Field>
+        <Field label="Durum">
+          <Select value={filtre} onChange={(e) => setFiltre(e.target.value)} aria-label="Durum">
+            <option value="tumu">Tümü</option>
+            <option value="dagitilabilir">Dağıtılabilir</option>
+            <option value="zimmetli">Zimmetli</option>
+            <option value="beklemede">Beklemede</option>
+            <option value="kritik">Kritik</option>
+            <option value="arsiv">Arşiv</option>
+            <option value="dusulen">Düşülen</option>
+          </Select>
+        </Field>
+      </div>
       {mal ? (
-        <div className="border border-ink/15 p-3">
-          <p className="font-semibold">{mal.ad}</p>
-          <p className="text-sm text-ink/70">
-            {mal.seriNo ? `Seri ${mal.seriNo} · ` : ""}zimmetsiz {mal.musait} {mal.birim}
-          </p>
-          <button type="button" className="mt-2 text-sm underline" onClick={() => { setMalzemeId(""); setSecili({}); }}>Başka malzeme seç</button>
-        </div>
-      ) : (
-        <ul className="max-h-64 space-y-1 overflow-auto">
-          {bulunan.map((m) => (
-            <li key={m.id}>
-              <button
-                type="button"
-                className="w-full border border-ink/10 px-3 py-2 text-left text-sm"
-                onClick={() => setMalzemeId(m.id)}
-              >
-                <span className="block font-semibold">{m.ad}</span>
-                <span className="text-ink/60">{m.seriNo ? `Seri ${m.seriNo} · ` : ""}zimmetsiz {m.musait} {m.birim}</span>
-              </button>
-            </li>
-          ))}
-          {bulunan.length === 0 ? <li className="text-sm text-ink/60">Zimmetsiz malzeme yok.</li> : null}
-        </ul>
-      )}
-      {mal ? (
-        <>
+        <div className="max-w-xl space-y-4 border border-ink/15 p-3">
+          <div>
+            <p className="font-semibold">{mal.ad}</p>
+            <p className="text-sm text-ink/70">
+              {mal.seriNo ? `Seri ${mal.seriNo} · ` : ""}zimmetsiz {mal.musait} {mal.birim}
+            </p>
+            <button type="button" className="mt-2 text-sm underline" onClick={() => { setMalzemeId(""); setSecili({}); }}>Seçimi bırak</button>
+          </div>
           <Field label="Personel ara">
             <TextInput value={kisiAra} placeholder="Ad, rütbe veya sicil" onChange={(e) => setKisiAra(e.target.value)} />
           </Field>
@@ -178,8 +196,72 @@ function Ver() {
           >
             {busy ? "Yazılıyor…" : "Zimmet ver"}
           </Button>
-        </>
-      ) : null}
+        </div>
+      ) : (
+        <p className="text-sm text-ink/60">Aşağıdaki listeden malzeme seçin. Sağlam ve zimmetsiz olanlar seçilir.</p>
+      )}
+      {malzemeler.isLoading ? <p className="text-sm text-ink/60">Yükleniyor</p> : null}
+      {malzemeler.error ? <p className="text-signal">{hataMetni(malzemeler.error)}</p> : null}
+      {!malzemeler.isLoading && satirlar.length === 0 ? <p className="text-sm text-ink/60">Bu filtrede malzeme yok.</p> : null}
+      <div className="overflow-x-auto border border-ink/10">
+        <table className="w-full min-w-2xl text-left text-sm">
+          <thead className="bg-ink/5 text-xs uppercase tracking-widest text-ink/60">
+            <tr>
+              <th className="px-3 py-2 font-semibold">Stok</th>
+              <th className="px-3 py-2 font-semibold">Malzeme</th>
+              <th className="px-3 py-2 font-semibold">Seri</th>
+              <th className="px-3 py-2 font-semibold">Konum</th>
+              <th className="px-3 py-2 font-semibold">Durum</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmet miktarı</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmetli</th>
+              <th className="px-3 py-2 text-right font-semibold">Zimmetsiz</th>
+              <th className="px-3 py-2 font-semibold" />
+            </tr>
+          </thead>
+          <tbody>
+            {satirlar.map((m) => {
+              const secilebilir = !m.deleted && m.durum === "saglam" && m.musait > 0;
+              const seciliSatir = m.id === malzemeId;
+              return (
+                <tr key={m.id} className={`border-t border-ink/10 ${seciliSatir ? "bg-field/10" : ""}`}>
+                  <td className="px-3 py-2 tabular-nums">{m.stokNo}</td>
+                  <td className="px-3 py-2">
+                    <span className="block font-semibold">{m.ad}</span>
+                    <span className="block text-xs text-ink/50">{m.kategori}</span>
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">{m.seriNo || "—"}</td>
+                  <td className="px-3 py-2">{m.konum || "—"}</td>
+                  <td className="px-3 py-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide">{m.deleted ? "Düşüldü" : SINIF_AD[stokSinifi(m)]}</span>
+                    <span className="block text-xs text-ink/50">
+                      {DURUM_AD[m.durum]}
+                      {m.muharebe === "eder" ? " · muharebe eder" : m.muharebe === "edemez" ? " · muharebe edemez" : ""}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.miktar}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.zimmetli}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{m.musait}</td>
+                  <td className="px-3 py-2 text-right">
+                    {secilebilir ? (
+                      <Button
+                        type="button"
+                        variant={seciliSatir ? "solid" : "ghost"}
+                        onClick={() => {
+                          if (seciliSatir) return;
+                          setMalzemeId(m.id);
+                          setSecili({});
+                        }}
+                      >
+                        {seciliSatir ? "Seçili" : "Seç"}
+                      </Button>
+                    ) : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

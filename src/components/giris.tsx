@@ -39,6 +39,7 @@ export function Giris() {
 function GirisForm() {
   const form = useForm({ resolver: zodResolver(girisSchema), defaultValues: { kullanici: "", sifre: "" } });
   return (
+    <>
     <form
       className="space-y-4"
       onSubmit={form.handleSubmit(async (values) => {
@@ -68,6 +69,7 @@ function GirisForm() {
       Android uygulamasını indir
     </a>
     <p className="mt-1 text-center text-xs text-ink/60">Telefona kurulur. İnternet olmadan çalışır. Kayıt siteye gitmez.</p>
+    </>
   );
 }
 

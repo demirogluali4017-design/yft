@@ -132,6 +132,24 @@ export const zimmetSchema = z.object({
     .max(20),
 });
 
+export const topluZimmetSchema = z.object({
+  materialId: z.string().min(1, "Malzeme seçin."),
+  kisiler: z
+    .array(
+      z.object({
+        personnelId: z.string().min(1),
+        miktar: z.coerce.number().int().positive("Miktar en az 1.").max(100000),
+      }),
+    )
+    .min(1, "En az bir personel seçin.")
+    .max(30),
+  notlar: z.string().trim().max(400).optional(),
+});
+
+export const topluCekSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, "En az bir zimmet seçin.").max(40),
+});
+
 export const zimmetGuncelleSchema = z.object({
   id: z.string().min(1),
   miktar: z.coerce.number().int().positive("Miktar en az 1.").max(100000),

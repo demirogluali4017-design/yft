@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { AppShell, useInvalidate, useWorkspaceQuery } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
 import { yazdirBelge } from "@/components/sened";
-import { assignZimmet, getMaterial, listMaterials, listPersonnel, removeMaterial, saveMaterial, type Material } from "@/lib/zimmet/api";
+import { assignZimmet, getMaterial, listAssignments, listMaterials, listPersonnel, removeMaterial, returnAssignment, saveMaterial, type Material } from "@/lib/zimmet/api";
 import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi, tarih } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
 
@@ -130,7 +130,7 @@ function Envanter() {
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">{m.musait}</td>
                 <td className="px-3 py-2 text-right">
-                  {zimmetYetkisi && !m.deleted && m.durum === "saglam" && m.musait > 0 ? (
+                  {zimmetYetkisi && !m.deleted ? (
                     <Button type="button" variant="ghost" onClick={() => setZimmet(m)}>Zimmet</Button>
                   ) : null}
                   <Button type="button" variant="ghost" onClick={() => setForm(m)}>Malzeme bilgi formu</Button>
@@ -440,87 +440,202 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
     queryFn: () => listPersonnel(),
     enabled: !!mal,
   });
+  const aciklar = useQuery({
+    queryKey: ["zimmet", "atama", "aktif"],
+    queryFn: () => listAssignments({ data: { personnelId: "", durum: "aktif" } }),
+    enabled: !!mal,
+  });
   const malzemeler = useQuery({
     queryKey: ["zimmet", "malzeme"],
     queryFn: () => listMaterials(),
     enabled: !!mal,
   });
   const invalidate = useInvalidate();
-  const [personnelId, setPersonnelId] = useState("");
-  const [secim, setSecim] = useState("");
-  const [miktar, setMiktar] = useState(1);
+  const [kisiAra, setKisiAra] = useState("");
+  const [secili, setSecili] = useState<Record<string, number>>({});
+  const [cekilecek, setCekilecek] = useState<Record<string, boolean>>({});
   const [notlar, setNotlar] = useState("");
   const [busy, setBusy] = useState(false);
-  const kisiler = (personel.data?.personeller ?? []).filter((p) => p.aktif);
-  const kardes = (malzemeler.data?.malzemeler ?? []).filter(
-    (m) => mal && !m.deleted && m.durum === "saglam" && m.musait > 0 && m.stokNo === mal.stokNo && m.ad === mal.ad,
-  );
-  const seriVar = kardes.some((m) => m.seriNo);
-  const hedef = kardes.find((m) => m.id === secim) ?? kardes.find((m) => m.id === mal?.id) ?? mal;
+  useEffect(() => {
+    setKisiAra("");
+    setSecili({});
+    setCekilecek({});
+    setNotlar("");
+  }, [mal?.id]);
+
+  function kapat() {
+    setKisiAra("");
+    setSecili({});
+    setCekilecek({});
+    setNotlar("");
+    onClose();
+  }
+
+  const guncel = malzemeler.data?.malzemeler.find((m) => m.id === mal?.id) ?? mal;
+  const uygun = !!guncel && !guncel.deleted && guncel.durum === "saglam" && guncel.musait > 0;
+  const kq = kisiAra.trim().toLocaleLowerCase("tr");
+  const kisiler = (personel.data?.personeller ?? [])
+    .filter((p) => p.aktif)
+    .filter((p) => !kq || `${p.rutbe} ${p.adSoyad} ${p.sicil}`.toLocaleLowerCase("tr").includes(kq))
+    .sort((a, b) => a.adSoyad.localeCompare(b.adSoyad, "tr"));
+  const uzerinde = (aciklar.data?.zimmetler ?? []).filter((z) => z.materialId === guncel?.id);
+  const toplam = Object.values(secili).reduce((n, v) => n + (Number(v) || 0), 0);
+  const fazla = guncel ? toplam > guncel.musait : false;
+  const cekAdet = uzerinde.filter((z) => cekilecek[z.id]).length;
+
+  function sec(id: string, acik: boolean) {
+    setSecili((eski) => {
+      const sonraki = { ...eski };
+      if (acik) sonraki[id] = sonraki[id] || 1;
+      else delete sonraki[id];
+      return sonraki;
+    });
+  }
+
   return (
-    <Dialog
-      open={!!mal}
-      title="Zimmet ver"
-      onClose={() => {
-        setPersonnelId("");
-        setSecim("");
-        setMiktar(1);
-        setNotlar("");
-        onClose();
-      }}
-    >
-      {mal && hedef ? (
-        <form
-          className="space-y-3"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!personnelId) return toast.error("Personel seçin.");
-            if (miktar < 1 || miktar > hedef.musait) return toast.error("Zimmetsiz miktarı aşıyor.");
-            setBusy(true);
-            try {
-              const sonuc = await assignZimmet({
-                data: { personnelId, lines: [{ materialId: hedef.id, miktar, notlar }] },
-              });
-              toast.success(`Zimmet yazıldı · ${sonuc.belgeNo}`);
-              setPersonnelId("");
-              setSecim("");
-              setMiktar(1);
-              setNotlar("");
-              await invalidate();
-              onClose();
-            } catch (error) {
-              toast.error(hataMetni(error));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <p className="text-sm text-ink/70">{hedef.ad} · zimmetsiz {hedef.musait} {hedef.birim}</p>
-          {seriVar ? (
-            <Field label="Seri no">
-              <Select value={hedef.id} onChange={(e) => setSecim(e.target.value)}>
-                {kardes.map((m) => (
-                  <option key={m.id} value={m.id}>{m.seriNo || "Seri yok"} · zimmetsiz {m.musait}</option>
+    <Dialog open={!!mal} title="Zimmet" onClose={kapat}>
+      {guncel ? (
+        <div className="space-y-4">
+          <p className="text-sm text-ink/70">
+            {guncel.ad}
+            {guncel.seriNo ? ` · seri ${guncel.seriNo}` : ""}
+            {` · zimmetsiz ${guncel.musait} ${guncel.birim}`}
+          </p>
+          {uygun ? (
+            <>
+              <Field label="Personel ara">
+                <TextInput value={kisiAra} placeholder="Ad, rütbe veya sicil" onChange={(e) => setKisiAra(e.target.value)} />
+              </Field>
+              <ul className="max-h-64 space-y-2 overflow-auto">
+                {kisiler.map((p) => {
+                  const acik = secili[p.id] != null;
+                  return (
+                    <li key={p.id} className="flex items-center gap-3 border border-ink/10 px-3 py-2">
+                      <label className="flex min-w-0 flex-1 items-center gap-3">
+                        <input type="checkbox" className="size-5 shrink-0" checked={acik} onChange={(e) => sec(p.id, e.target.checked)} />
+                        <span className="min-w-0 text-sm">
+                          <span className="block">{p.rutbe} {p.adSoyad}</span>
+                          <span className="text-ink/60">{p.sicil}</span>
+                        </span>
+                      </label>
+                      {acik ? (
+                        <input
+                          type="number"
+                          min={1}
+                          inputMode="numeric"
+                          aria-label={`${p.adSoyad} miktar`}
+                          className="h-11 w-16 border border-ink/15 px-2 text-sm"
+                          value={secili[p.id]}
+                          onChange={(e) => setSecili((eski) => ({ ...eski, [p.id]: Math.max(1, Number(e.target.value) || 1) }))}
+                        />
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className={`text-sm ${fazla ? "text-signal" : "text-ink/70"}`}>
+                Seçilen {Object.keys(secili).length} kişi · toplam {toplam} {guncel.birim}
+                {fazla ? ` · zimmetsiz ${guncel.musait} ${guncel.birim} yetmiyor` : ""}
+              </p>
+              <Field label="Not">
+                <TextInput value={notlar} onChange={(e) => setNotlar(e.target.value)} />
+              </Field>
+              <Button
+                type="button"
+                disabled={busy || fazla || toplam < 1}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    const yazilacak = Object.entries(secili).map(([personnelId, miktar]) => ({ personnelId, miktar }));
+                    let yazilan = 0;
+                    try {
+                      for (const kisi of yazilacak) {
+                        await assignZimmet({
+                          data: { personnelId: kisi.personnelId, lines: [{ materialId: guncel.id, miktar: kisi.miktar, notlar }] },
+                        });
+                        yazilan += 1;
+                      }
+                      toast.success(`${yazilan} kişiye zimmet yazıldı`);
+                      setSecili({});
+                      setNotlar("");
+                      await invalidate();
+                    } catch (error) {
+                      if (yazilan > 0) {
+                        toast.error(`${yazilan} kişiye yazıldı, kalanı yazılamadı. ${hataMetni(error)}`);
+                        setSecili({});
+                        await invalidate();
+                      } else {
+                        toast.error(hataMetni(error));
+                      }
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                {busy ? "Yazılıyor…" : "Zimmet ver"}
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-ink/60">Bu satır yeni zimmete uygun değil.</p>
+          )}
+          {uzerinde.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">Üzerinde olanlar</h3>
+              <ul className="max-h-48 space-y-1 overflow-auto">
+                {uzerinde.map((z) => (
+                  <li key={z.id}>
+                    <label className="flex items-start gap-3 border border-ink/10 px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-1 size-5 shrink-0"
+                        checked={!!cekilecek[z.id]}
+                        onChange={(e) => setCekilecek((eski) => ({ ...eski, [z.id]: e.target.checked }))}
+                      />
+                      <span>
+                        <span className="block font-semibold">{z.rutbe} {z.personelAd}</span>
+                        <span className="text-ink/70">{z.miktar} {z.birim} · {z.sicil}</span>
+                      </span>
+                    </label>
+                  </li>
                 ))}
-              </Select>
-            </Field>
+              </ul>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy || cekAdet < 1}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    const ids = uzerinde.filter((z) => cekilecek[z.id]).map((z) => z.id);
+                    let cekilen = 0;
+                    try {
+                      for (const id of ids) {
+                        await returnAssignment({ data: id });
+                        cekilen += 1;
+                      }
+                      toast.success(`${cekilen} zimmet çekildi`);
+                      setCekilecek({});
+                      await invalidate();
+                    } catch (error) {
+                      if (cekilen > 0) {
+                        toast.error(`${cekilen} zimmet çekildi, kalanı çekilemedi. ${hataMetni(error)}`);
+                        setCekilecek({});
+                        await invalidate();
+                      } else {
+                        toast.error(hataMetni(error));
+                      }
+                    } finally {
+                      setBusy(false);
+                    }
+                  })();
+                }}
+              >
+                {busy ? "Çekiliyor…" : `Seçilenleri çek${cekAdet ? ` (${cekAdet})` : ""}`}
+              </Button>
+            </div>
           ) : null}
-          <Field label="Personel">
-            <Select value={personnelId} onChange={(e) => setPersonnelId(e.target.value)}>
-              <option value="">Seçin</option>
-              {kisiler.map((p) => (
-                <option key={p.id} value={p.id}>{p.rutbe} {p.adSoyad} · {p.sicil}</option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Miktar">
-            <TextInput type="number" min={1} max={hedef.musait} value={miktar} onChange={(e) => setMiktar(Number(e.target.value))} />
-          </Field>
-          <Field label="Not">
-            <TextInput value={notlar} onChange={(e) => setNotlar(e.target.value)} />
-          </Field>
-          <Button type="submit" disabled={busy}>Zimmet ver</Button>
-        </form>
+        </div>
       ) : null}
     </Dialog>
   );

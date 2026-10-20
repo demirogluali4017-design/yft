@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { AppShell, useInvalidate, useWorkspaceQuery } from "@/components/shell";
 import { Button, Dialog, Empty, Field, Select, TextInput } from "@/components/ui";
 import { yazdirBelge } from "@/components/sened";
-import { assignZimmet, getMaterial, listAssignments, listMaterials, listPersonnel, removeMaterial, returnAssignment, saveMaterial, type Material } from "@/lib/zimmet/api";
+import { assignZimmet, getMaterial, listAssignments, listMaterials, listPersonnel, removeMaterial, returnAssignment, saveMaterial, updateAssignment, type Material } from "@/lib/zimmet/api";
 import { DURUM_AD, SINIF_AD, hataMetni, stokSinifi, tarih } from "@/lib/zimmet/labels";
 import { DURUMLAR, KATEGORILER, malzemeSchema, type MalzemeInput } from "@/lib/zimmet/schema";
 
@@ -646,7 +646,17 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                     let cekilen = 0;
                     try {
                       for (const satir of cekSatirlari) {
-                        await returnAssignment({ data: { id: satir.id, miktar: satir.miktar } });
+                        if (satir.miktar >= satir.max) {
+                          await returnAssignment({ data: satir.id });
+                        } else {
+                          await updateAssignment({
+                            data: {
+                              id: satir.id,
+                              miktar: satir.max - satir.miktar,
+                              notlar: `${satir.miktar} adet çekildi`,
+                            },
+                          });
+                        }
                         cekilen += 1;
                       }
                       toast.success(`${cekilen} kişiden zimmet çekildi`);

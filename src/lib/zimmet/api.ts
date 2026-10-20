@@ -1,4 +1,4 @@
-import { createServerFn } from "@/lib/server-fn";
+import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getSql, type Sql } from "@/lib/db";
 import {
@@ -16,8 +16,6 @@ import {
   malzemeSchema,
   parseInput,
   personelSchema,
-  topluCekSchema,
-  topluZimmetSchema,
   yetkiSchema,
   zimmetGuncelleSchema,
   zimmetSchema,
@@ -1067,79 +1065,6 @@ export const assignZimmet = createServerFn({ method: "POST" })
       });
     }
     return { ok: true as const, belgeNo: belge };
-  });
-
-export const topluZimmet = createServerFn({ method: "POST" })
-  .validator((input: unknown) => parseInput(topluZimmetSchema, input))
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    const sql = await getSql();
-    const actor = requireStaff(await loadActor(sql, context.userId), "zimmet");
-    const tekil = new Set(data.kisiler.map((k) => k.personnelId));
-    if (tekil.size !== data.kisiler.length) deny("Aynı kişi iki kez seçilemez.");
-    const mal = await sql.query<MatRow>(`${MATERIAL_SELECT} where m.id = $1 limit 1`, [data.materialId]);
-    if (!mal[0] || mal[0].deleted_at) deny("Malzeme bulunamadı.");
-    if (mal[0].durum !== "saglam") deny(`${mal[0].ad} zimmete uygun değil.`);
-    const musait = num(mal[0].miktar) - num(mal[0].zimmetli);
-    const toplam = data.kisiler.reduce((n, k) => n + k.miktar, 0);
-    if (toplam > musait) deny(`Zimmetsiz ${musait} ${mal[0].birim} var. Seçilen toplam ${toplam}.`);
-    for (const kisi of data.kisiler) {
-      const kayit = await sql<{ id: string; aktif: boolean }>`
-        select id, aktif from personnel where id = ${kisi.personnelId} limit 1
-      `;
-      if (!kayit[0] || !kayit[0].aktif) deny("Seçilen personelden biri aktif değil.");
-    }
-    const notlar = data.notlar ?? "";
-    for (const kisi of data.kisiler) {
-      const id = crypto.randomUUID();
-      const belge = await belgeNoUret(sql);
-      await sql`
-        insert into assignments
-          (id, material_id, personnel_id, miktar, durum, notlar, belge_no, assigned_by)
-        values
-          (${id}, ${data.materialId}, ${kisi.personnelId}, ${kisi.miktar}, ${"aktif"},
-           ${notlar}, ${belge}, ${actor.userId})
-      `;
-      await logHareket(sql, {
-        assignmentId: id,
-        action: "zimmet",
-        materialId: data.materialId,
-        personnelId: kisi.personnelId,
-        miktar: kisi.miktar,
-        actorId: actor.userId,
-        notlar,
-      });
-    }
-    return { ok: true as const, adet: data.kisiler.length };
-  });
-
-export const topluCek = createServerFn({ method: "POST" })
-  .validator((input: unknown) => parseInput(topluCekSchema, input))
-  .middleware([authMiddleware])
-  .handler(async ({ data, context }) => {
-    const sql = await getSql();
-    const actor = requireStaff(await loadActor(sql, context.userId), "zimmet");
-    const kayitlar: { id: string; material_id: string; personnel_id: string; miktar: number }[] = [];
-    for (const id of data.ids) {
-      const rows = await sql<{ id: string; material_id: string; personnel_id: string; miktar: number; durum: string }>`
-        select id, material_id, personnel_id, miktar, durum from assignments where id = ${id} limit 1
-      `;
-      if (!rows[0] || rows[0].durum !== "aktif") deny("Seçilenlerden biri açık zimmet değil.");
-      kayitlar.push(rows[0]);
-    }
-    for (const kayit of kayitlar) {
-      await sql`update assignments set durum = 'iade', returned_at = current_date where id = ${kayit.id}`;
-      await logHareket(sql, {
-        assignmentId: kayit.id,
-        action: "iade",
-        materialId: kayit.material_id,
-        personnelId: kayit.personnel_id,
-        miktar: num(kayit.miktar),
-        actorId: actor.userId,
-        notlar: "Toplu zimmet çekildi",
-      });
-    }
-    return { ok: true as const, adet: kayitlar.length };
   });
 
 export const updateAssignment = createServerFn({ method: "POST" })

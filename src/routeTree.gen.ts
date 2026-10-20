@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OkumaRouteImport } from './routes/okuma'
 import { Route as PersonelRouteImport } from './routes/personel'
 import { Route as RaporRouteImport } from './routes/rapor'
+import { Route as TopluRouteImport } from './routes/toplu'
 import { Route as YetkiRouteImport } from './routes/yetki'
 import { Route as ZimmetRouteImport } from './routes/zimmet'
 import { Route as ZimmetimRouteImport } from './routes/zimmetim'
@@ -71,6 +72,11 @@ const RaporRoute = RaporRouteImport.update({
   path: '/rapor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TopluRoute = TopluRouteImport.update({
+  id: '/toplu',
+  path: '/toplu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const YetkiRoute = YetkiRouteImport.update({
   id: '/yetki',
   path: '/yetki',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
   '/rapor': typeof RaporRoute
+  '/toplu': typeof TopluRoute
   '/yetki': typeof YetkiRoute
   '/zimmet': typeof ZimmetRoute
   '/zimmetim': typeof ZimmetimRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
   '/rapor': typeof RaporRoute
+  '/toplu': typeof TopluRoute
   '/yetki': typeof YetkiRoute
   '/zimmet': typeof ZimmetRoute
   '/zimmetim': typeof ZimmetimRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/okuma': typeof OkumaRoute
   '/personel': typeof PersonelRouteWithChildren
   '/rapor': typeof RaporRoute
+  '/toplu': typeof TopluRoute
   '/yetki': typeof YetkiRoute
   '/zimmet': typeof ZimmetRoute
   '/zimmetim': typeof ZimmetimRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/okuma'
     | '/personel'
     | '/rapor'
+    | '/toplu'
     | '/yetki'
     | '/zimmet'
     | '/zimmetim'
@@ -192,6 +202,7 @@ export interface FileRouteTypes {
     | '/okuma'
     | '/personel'
     | '/rapor'
+    | '/toplu'
     | '/yetki'
     | '/zimmet'
     | '/zimmetim'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/okuma'
     | '/personel'
     | '/rapor'
+    | '/toplu'
     | '/yetki'
     | '/zimmet'
     | '/zimmetim'
@@ -229,6 +241,7 @@ export interface RootRouteChildren {
   OkumaRoute: typeof OkumaRoute
   PersonelRoute: typeof PersonelRouteWithChildren
   RaporRoute: typeof RaporRoute
+  TopluRoute: typeof TopluRoute
   YetkiRoute: typeof YetkiRoute
   ZimmetRoute: typeof ZimmetRoute
   ZimmetimRoute: typeof ZimmetimRoute
@@ -298,6 +311,13 @@ declare module '@tanstack/react-router' {
       path: '/rapor'
       fullPath: '/rapor'
       preLoaderRoute: typeof RaporRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/toplu': {
+      id: '/toplu'
+      path: '/toplu'
+      fullPath: '/toplu'
+      preLoaderRoute: typeof TopluRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/yetki': {
@@ -396,6 +416,7 @@ const rootRouteChildren: RootRouteChildren = {
   OkumaRoute: OkumaRoute,
   PersonelRoute: PersonelRouteWithChildren,
   RaporRoute: RaporRoute,
+  TopluRoute: TopluRoute,
   YetkiRoute: YetkiRoute,
   ZimmetRoute: ZimmetRoute,
   ZimmetimRoute: ZimmetimRoute,

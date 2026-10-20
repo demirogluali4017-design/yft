@@ -15,6 +15,7 @@ const NAV = [
   { to: "/zimmetim", label: "Zimmetim", need: "ozet" },
   { to: "/envanter", label: "Envanter", need: "envanter" },
   { to: "/zimmet", label: "Zimmet belgesi", need: "zimmet" },
+  { to: "/toplu", label: "Toplu zimmet", need: "zimmet" },
   { to: "/gecmis", label: "Zimmet geçmişi", need: "ozet" },
   { to: "/personel", label: "Personel", need: "personel" },
   { to: "/okuma", label: "Belge", need: "belge" },

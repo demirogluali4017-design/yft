@@ -522,6 +522,14 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
     });
   }
 
+  function tumunuSec() {
+    setSecili((eski) => {
+      const sonraki = { ...eski };
+      for (const p of kisiler) sonraki[p.id] = sonraki[p.id] ?? "1";
+      return sonraki;
+    });
+  }
+
   return (
     <Dialog open={!!mal} title="Zimmet" onClose={kapat}>
       {guncel ? (
@@ -536,6 +544,10 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
               <Field label="Personel ara">
                 <TextInput value={kisiAra} placeholder="Ad, rütbe veya sicil" onChange={(e) => setKisiAra(e.target.value)} />
               </Field>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" className="flex-1" onClick={tumunuSec}>Tümünü seç</Button>
+                <Button type="button" variant="ghost" className="flex-1" onClick={() => setSecili({})}>Seçimi kaldır</Button>
+              </div>
               <ul className="max-h-64 space-y-2 overflow-auto">
                 {kisiler.map((p) => {
                   const acik = secili[p.id] != null;

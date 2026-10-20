@@ -478,7 +478,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
   });
   const invalidate = useInvalidate();
   const [kisiAra, setKisiAra] = useState("");
-  const [secili, setSecili] = useState<Record<string, number>>({});
+  const [secili, setSecili] = useState<Record<string, string>>({});
   const [cekilecek, setCekilecek] = useState<Record<string, string>>({});
   const [notlar, setNotlar] = useState("");
   const [busy, setBusy] = useState(false);
@@ -506,6 +506,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
     .sort((a, b) => a.adSoyad.localeCompare(b.adSoyad, "tr"));
   const uzerinde = (aciklar.data?.zimmetler ?? []).filter((z) => z.materialId === guncel?.id);
   const toplam = Object.values(secili).reduce((n, v) => n + (Number(v) || 0), 0);
+  const adetEksik = Object.values(secili).some((v) => !/^\d+$/.test(v) || Number(v) < 1);
   const fazla = guncel ? toplam > guncel.musait : false;
   const cekSatirlari = uzerinde
     .map((z) => ({ id: z.id, miktar: Number(cekilecek[z.id] || 0), max: z.miktar, ad: z.personelAd }))
@@ -515,7 +516,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
   function sec(id: string, acik: boolean) {
     setSecili((eski) => {
       const sonraki = { ...eski };
-      if (acik) sonraki[id] = sonraki[id] || 1;
+      if (acik) sonraki[id] = sonraki[id] ?? "1";
       else delete sonraki[id];
       return sonraki;
     });
@@ -539,8 +540,8 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                 {kisiler.map((p) => {
                   const acik = secili[p.id] != null;
                   return (
-                    <li key={p.id} className="flex items-center gap-3 border border-ink/10 px-3 py-2">
-                      <label className="flex min-w-0 flex-1 items-center gap-3">
+                    <li key={p.id} className="border border-ink/10 px-3 py-2">
+                      <label className="flex min-w-0 items-center gap-3">
                         <input type="checkbox" className="size-5 shrink-0" checked={acik} onChange={(e) => sec(p.id, e.target.checked)} />
                         <span className="min-w-0 text-sm">
                           <span className="block">{p.rutbe} {p.adSoyad}</span>
@@ -548,15 +549,22 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                         </span>
                       </label>
                       {acik ? (
-                        <input
-                          type="number"
-                          min={1}
-                          inputMode="numeric"
-                          aria-label={`${p.adSoyad} miktar`}
-                          className="h-11 w-20 border border-ink/15 px-2 text-base"
-                          value={secili[p.id]}
-                          onChange={(e) => setSecili((eski) => ({ ...eski, [p.id]: Math.max(1, Number(e.target.value) || 1) }))}
-                        />
+                        <label className="mt-2 block text-sm">
+                          <span className="mb-1 block font-semibold">Adet</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            enterKeyHint="done"
+                            aria-label={`${p.adSoyad} miktar`}
+                            className="h-11 w-full border border-ink/15 px-3 text-base"
+                            value={secili[p.id] ?? ""}
+                            onChange={(e) => {
+                              const ham = e.target.value.replace(/\D/g, "").slice(0, 6);
+                              setSecili((eski) => ({ ...eski, [p.id]: ham }));
+                            }}
+                          />
+                        </label>
                       ) : null}
                     </li>
                   );
@@ -565,6 +573,7 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
               <p className={`text-sm ${fazla ? "text-signal" : "text-ink/70"}`}>
                 Seçilen {Object.keys(secili).length} kişi · toplam {toplam} {guncel.birim}
                 {fazla ? ` · zimmetsiz ${guncel.musait} ${guncel.birim} yetmiyor` : ""}
+                {adetEksik ? " · adeti yazın" : ""}
               </p>
               <Field label="Not">
                 <TextInput value={notlar} onChange={(e) => setNotlar(e.target.value)} />
@@ -572,11 +581,11 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
               <Button
                 type="button"
                 className="w-full"
-                disabled={busy || fazla || toplam < 1}
+                disabled={busy || fazla || adetEksik || toplam < 1}
                 onClick={() => {
                   void (async () => {
                     setBusy(true);
-                    const yazilacak = Object.entries(secili).map(([personnelId, miktar]) => ({ personnelId, miktar }));
+                    const yazilacak = Object.entries(secili).map(([personnelId, ham]) => ({ personnelId, miktar: Number(ham) }));
                     let yazilan = 0;
                     try {
                       for (const kisi of yazilacak) {
@@ -620,15 +629,18 @@ export function ZimmetDialog({ mal, onClose }: { mal: Material | null; onClose: 
                     <label className="mt-2 block text-sm">
                       <span className="mb-1 block font-semibold">Çekilecek adet</span>
                       <input
-                        type="number"
-                        min={1}
-                        max={z.miktar}
+                        type="text"
                         inputMode="numeric"
+                        autoComplete="off"
+                        enterKeyHint="done"
                         placeholder="Adet"
                         aria-label={`${z.personelAd} çekilecek adet`}
                         className="h-11 w-full border border-ink/15 px-3 text-base"
                         value={cekilecek[z.id] ?? ""}
-                        onChange={(e) => setCekilecek((eski) => ({ ...eski, [z.id]: e.target.value }))}
+                        onChange={(e) => {
+                          const ham = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          setCekilecek((eski) => ({ ...eski, [z.id]: ham }));
+                        }}
                       />
                     </label>
                   </li>
